@@ -1,0 +1,22 @@
+[
+  {"query": "Write Mathematica code to compute the Ricci tensor of the Schwarzschild metric.", "should_trigger": true},
+  {"query": "Give me Wolfram Language to evaluate the integral of x^2 e^{-x} from 0 to infinity.", "should_trigger": true},
+  {"query": "Set up a Mathematica notebook that computes the Riemann tensor of AdS5 in Poincare coordinates.", "should_trigger": true},
+  {"query": "I need WL code that builds the Christoffel symbols for a flat FRW metric with scale factor a(t).", "should_trigger": true},
+  {"query": "Compute the Kretschmann scalar of the Kerr metric in Mathematica and show me the code you used.", "should_trigger": true},
+  {"query": "Can you write Wolfram code to series-expand Sin[x]/x to order 10 around x=0?", "should_trigger": true},
+  {"query": "Produce a runnable Mathematica script that diagonalizes this 4x4 Hamiltonian and returns its eigenvectors.", "should_trigger": true},
+  {"query": "Write Wolfram Language to compute the Einstein tensor for a metric I'll give you.", "should_trigger": true},
+  {"query": "Generate Mathematica code that derives the geodesic equations from a given Lagrangian.", "should_trigger": true},
+  {"query": "Set up the calculation of the Weyl tensor for a conformally flat metric in Mathematica.", "should_trigger": true},
+  {"query": "Is my hand computation of the Schwarzschild Ricci scalar correct? I got 0, can you check?", "should_trigger": false},
+  {"query": "Check whether the integral of x^2 e^{-x} from 0 to infinity equals 2.", "should_trigger": false},
+  {"query": "Find the error in my derivation of the geodesic equation, here are my steps.", "should_trigger": false},
+  {"query": "Did I get the sign right on these Christoffel symbols? Here's my work, please verify.", "should_trigger": false},
+  {"query": "Write a Python script to scrape the latest arXiv hep-th listings.", "should_trigger": false},
+  {"query": "Explain conceptually why anti-de Sitter space is maximally symmetric.", "should_trigger": false},
+  {"query": "Prove that the Riemann tensor has 20 independent components in four dimensions.", "should_trigger": false},
+  {"query": "Refactor this JavaScript function to use async/await instead of callbacks.", "should_trigger": false},
+  {"query": "What's the difference between the OGRe and xAct packages?", "should_trigger": false},
+  {"query": "Summarize the main results of this general relativity paper for me.", "should_trigger": false}
+]

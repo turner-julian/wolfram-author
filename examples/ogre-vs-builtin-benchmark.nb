@@ -1,0 +1,509 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 14.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[     18151,        499]
+NotebookOptionsPosition[     14963,        432]
+NotebookOutlinePosition[     15426,        450]
+CellTagsIndexPosition[     15383,        447]
+WindowTitle->AdS5 curvature: built-in vs OGRe
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["AdS\:2085 curvature \[Dash] built-in arrays vs OGRe", "Title",ExpressionUUID->"adb3cbcc-7e65-47f0-b01e-f4f42ff091fe"],
+
+Cell["\<\
+This notebook documents the mathematica-author library's general-relativity \
+operators on one concrete example -- the curvature of five-dimensional \
+anti-de Sitter space in Poincare coordinates -- and compares the library's \
+from-scratch built-in array implementation against the OGRe package on the \
+same computation. It shows two things: the two implementations AGREE \
+componentwise (correctness), and the built-in version is roughly an order of \
+magnitude FASTER on an explicit coordinate metric (speed). Conventions are \
+the library's pinned ones (mostly-plus signature, Levi-Civita connection; see \
+references/wolfram-conventions.md). Timings are RepeatedTiming medians on \
+this machine -- re-evaluate the cells to reproduce.\
+\>", "Text",ExpressionUUID->"bf82112c-c89d-4ad1-be42-68f9fe4bc8b4"],
+
+Cell[CellGroupData[{
+
+Cell["1.  Load the library and OGRe", "Section",ExpressionUUID->"2c68e741-03a5-4979-9378-5701545165b8"],
+
+Cell["\<\
+Delivered scripts load the curated library by absolute path and call \
+operators with full context prefixes, so the file runs as-is. OGRe is loaded \
+the same way (banner suppressed).\
+\>", "Text",ExpressionUUID->"208d60a4-3586-4944-99fb-52298c727808"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Get", "[", 
+   RowBox[{"FileNameJoin", "[", 
+    RowBox[{"{", 
+     RowBox[{
+     "$HomeDirectory", ",", "\"\<.claude\>\"", ",", "\"\<skills\>\"", ",", 
+      "\"\<mathematica-author\>\"", ",", "\"\<lib\>\"", ",", 
+      "\"\<MAuthor.wl\>\""}], "}"}], "]"}], "]"}], ";", 
+  RowBox[{"Get", "[", 
+   RowBox[{"FileNameJoin", "[", 
+    RowBox[{"{", 
+     RowBox[{
+     "$HomeDirectory", ",", "\"\<.claude\>\"", ",", "\"\<skills\>\"", ",", 
+      "\"\<mathematica-author\>\"", ",", "\"\<lib\>\"", ",", 
+      "\"\<GR.wl\>\""}], "}"}], "]"}], "]"}], ";", 
+  RowBox[{"Get", "[", 
+   RowBox[{"FileNameJoin", "[", 
+    RowBox[{"{", 
+     RowBox[{
+     "$HomeDirectory", ",", "\"\<Documents\>\"", ",", 
+      "\"\<Wolfram Mathematica\>\"", ",", "\"\<OGRe.m\>\""}], "}"}], "]"}], 
+   "]"}], ";", 
+  RowBox[{"OGRe`TSetAutoUpdates", "[", "False", "]"}], ";", 
+  "\"\<loaded: MAuthor`, MAuthorGR`, OGRe`\>\""}]], "Input",
+ CellLabel->" In[1]:=",ExpressionUUID->"147e7dfc-e77c-4ff0-aa4d-ba07482afe43"],
+
+Cell[OutputFormData["\<\
+loaded: MAuthor`, MAuthorGR`, OGRe`\
+\>"], "Output",
+ CellChangeTimes->{3.988986836967911*^9},
+ CellLabel->" Out[1]=",ExpressionUUID->"7654c064-2af5-4a12-81a0-b514c6456df0"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["2.  The metric", "Section",ExpressionUUID->"bf9877ea-2b11-416b-914e-0d21dbb837db"],
+
+Cell["\<\
+AdS5 in the Poincare patch, mostly-plus, AdS radius L, radial coordinate z > \
+0: ds^2 = (L^2/z^2)(-dt^2 + dx1^2 + dx2^2 + dx3^2 + dz^2).\
+\>", "Text",ExpressionUUID->"1dc356ce-9903-4d8d-9091-a1d053374f8b"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"coords", "=", 
+   RowBox[{"{", 
+    RowBox[{"t", ",", "x1", ",", "x2", ",", "x3", ",", "z"}], "}"}]}], ";", 
+  RowBox[{"$Assumptions", "=", 
+   RowBox[{
+    RowBox[{"L", ">", "0"}], "&&", 
+    RowBox[{"z", ">", "0"}]}]}], ";", 
+  RowBox[{"gComp", "=", 
+   FractionBox[
+    RowBox[{
+     SuperscriptBox["L", "2"], " ", 
+     RowBox[{"DiagonalMatrix", "[", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"-", "1"}], ",", "1", ",", "1", ",", "1", ",", "1"}], "}"}], 
+      "]"}]}], 
+    SuperscriptBox["z", "2"]]}], ";", 
+  RowBox[{"g", "=", 
+   RowBox[{"MAuthor`CTensor", "[", 
+    RowBox[{"coords", ",", 
+     RowBox[{"{", 
+      RowBox[{"\"\<down\>\"", ",", "\"\<down\>\""}], "}"}], ",", "gComp", ",",
+      "Automatic", ",", 
+     RowBox[{"Association", "[", 
+      RowBox[{"\"\<signature\>\"", "\[Rule]", "\"\<mostly-plus\>\""}], 
+      "]"}]}], "]"}]}], ";", 
+  TagBox["gComp",
+   Function[BoxForm`e$, 
+    MatrixForm[BoxForm`e$]]]}]], "Input",
+ CellLabel->" In[2]:=",ExpressionUUID->"b33611c7-aa61-4347-9d53-12186669db59"],
+
+Cell[OutputFormData["\<\
+     2                     2                    2                    2
+    L                     L                    L                    L
+{{-(--), 0, 0, 0, 0}, {0, --, 0, 0, 0}, {0, 0, --, 0, 0}, {0, 0, 0, --, 0}, 
+     2                     2                    2                    2
+    z                     z                    z                    z
+ 
+                  2
+                 L
+>   {0, 0, 0, 0, --}}
+                  2
+                 z\
+\>"], "Output",
+ CellChangeTimes->{3.988986836976935*^9},
+ CellLabel->" Out[2]=",ExpressionUUID->"d3cc80b8-e617-444a-97e8-a1a5d83765dc"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["3.  Curvature numerics (built-in operators)", "Section",ExpressionUUID->"91039ec8-5a0f-40ad-a3c9-b494625022b1"],
+
+Cell["\<\
+Compose the registered built-in primitives. The Ricci scalar and the \
+Kretschmann scalar are convention-independent, so they are the robust checks.\
+\
+\>", "Text",ExpressionUUID->"a43b72af-38e1-4a34-9ae1-f644bd715d5f"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"ricciScalar", "=", 
+   RowBox[{"MAuthorGR`RicciScalarFromMetric", "[", "g", "]"}]}], ";", 
+  RowBox[{"kretschmann", "=", 
+   RowBox[{"MAuthorGR`KretschmannFromMetric", "[", "g", "]"}]}], ";", 
+  TagBox[GridBox[{
+     {
+      TemplateBox[{
+       "\"Ricci scalar  R = \"", "ricciScalar", 
+        "\"      (expected -20/L^2)\""},
+       "RowDefault"]},
+     {
+      TemplateBox[{
+       "\"Kretschmann   K = \"", "kretschmann", "\"      (expected 40/L^4)\""},
+       "RowDefault"]}
+    },
+    DefaultBaseStyle->"Column",
+    GridBoxAlignment->{"Columns" -> {{Left}}},
+    GridBoxItemSize->{"Columns" -> {{Automatic}}, "Rows" -> {{Automatic}}}],
+   "Column"]}]], "Input",
+ CellLabel->" In[3]:=",ExpressionUUID->"6104bead-a225-4e57-9ba5-e38418a2b14e"],
+
+Cell[OutputFormData["\<\
+                          -20
+Column[{Ricci scalar  R = ---      (expected -20/L^2), 
+                           2
+                          L
+ 
+                       40
+>    Kretschmann   K = --      (expected 40/L^4)}, 
+                        4
+                       L
+ 
+>   ItemSize -> {Automatic, Automatic}]\
+\>"], "Output",
+ CellChangeTimes->{3.988986837580083*^9},
+ CellLabel->" Out[3]=",ExpressionUUID->"82a3e846-c8da-4fe0-a4f1-eea6e8370271"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["4.  The built-in result agrees with OGRe", "Section",ExpressionUUID->"f05dc781-154c-4188-9915-61fdb32e0c99"],
+
+Cell["\<\
+Same Riemann tensor, computed two independent ways, compared componentwise \
+with the library's EquivalentQ.\
+\>", "Text",ExpressionUUID->"e298f712-6e7a-45fb-9ee9-57cfd441baab"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"riemBuiltin", "=", 
+   RowBox[{"MAuthor`CTcomponents", "[", 
+    RowBox[{"MAuthorGR`RiemannFromMetric", "[", "g", "]"}], "]"}]}], ";", 
+  RowBox[{"riemOGRe", "=", 
+   RowBox[{"MAuthor`CTcomponents", "[", 
+    RowBox[{"MAuthorGR`RiemannFromMetricOGRe", "[", "g", "]"}], "]"}]}], ";", 
+  
+  RowBox[{"MAuthor`EquivalentQ", "[", 
+   RowBox[{"riemBuiltin", ",", "riemOGRe"}], "]"}]}]], "Input",
+ CellLabel->" In[4]:=",ExpressionUUID->"f68a4a4b-9fbc-4d2e-b402-c59946d40592"],
+
+Cell[OutputFormData["\<\
+True\
+\>"], "Output",
+ CellChangeTimes->{3.9889868389788523`*^9},
+ CellLabel->" Out[4]=",ExpressionUUID->"89f90613-2c5a-4755-bd77-fb96d23b099f"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["5.  Speed: built-in vs OGRe", "Section",ExpressionUUID->"46c9e96e-83a3-4f88-9459-c7f55fde80c5"],
+
+Cell["\<\
+RepeatedTiming (median of many runs) for the four operators that have both \
+implementations. Christoffel, Riemann, Ricci, and the Ricci scalar.\
+\>", "Text",ExpressionUUID->"33ba2048-d52a-4197-bb63-40c00b5fdecf"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"ops", "=", 
+   RowBox[{"{", 
+    RowBox[{
+    "\"\<Christoffel\>\"", ",", "\"\<Riemann\>\"", ",", "\"\<Ricci\>\"", ",", 
+     "\"\<RicciScalar\>\""}], "}"}]}], ";", 
+  RowBox[{"builtinFns", "=", 
+   RowBox[{"{", 
+    RowBox[{
+    "MAuthorGR`ChristoffelFromMetric", ",", "MAuthorGR`RiemannFromMetric", 
+     ",", "MAuthorGR`RicciFromMetric", ",", 
+     "MAuthorGR`RicciScalarFromMetric"}], "}"}]}], ";", 
+  RowBox[{"ogreFns", "=", 
+   RowBox[{"{", 
+    RowBox[{
+    "MAuthorGR`ChristoffelFromMetricOGRe", ",", 
+     "MAuthorGR`RiemannFromMetricOGRe", ",", "MAuthorGR`RicciFromMetricOGRe", 
+     ",", "MAuthorGR`RicciScalarFromMetricOGRe"}], "}"}]}], ";", 
+  RowBox[{"tBuiltin", "=", 
+   RowBox[{
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{"First", "[", 
+       RowBox[{"RepeatedTiming", "[", 
+        RowBox[{"#1", "[", "g", "]"}], "]"}], "]"}], "&"}], ")"}], "/@", 
+    "builtinFns"}]}], ";", 
+  RowBox[{"tOGRe", "=", 
+   RowBox[{
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{"First", "[", 
+       RowBox[{"RepeatedTiming", "[", 
+        RowBox[{"#1", "[", "g", "]"}], "]"}], "]"}], "&"}], ")"}], "/@", 
+    "ogreFns"}]}], ";", 
+  RowBox[{"Grid", "[", 
+   RowBox[{
+    RowBox[{"Prepend", "[", 
+     RowBox[{
+      RowBox[{"Transpose", "[", 
+       RowBox[{"{", 
+        RowBox[{"ops", ",", 
+         RowBox[{
+          RowBox[{"(", 
+           RowBox[{
+            TagBox[
+             RowBox[{"Slot", "[", 
+              InterpretationBox[
+               StyleBox["\<\"1\"\>",
+                ShowStringCharacters->False],
+               1,
+               Editable->False], "]"}],
+             NumberForm[#, {6, 5}]& ], "&"}], ")"}], "/@", "tBuiltin"}], ",", 
+         
+         RowBox[{
+          RowBox[{"(", 
+           RowBox[{
+            TagBox[
+             RowBox[{"Slot", "[", 
+              InterpretationBox[
+               StyleBox["\<\"1\"\>",
+                ShowStringCharacters->False],
+               1,
+               Editable->False], "]"}],
+             NumberForm[#, {6, 5}]& ], "&"}], ")"}], "/@", "tOGRe"}], ",", 
+         RowBox[{
+          RowBox[{"(", 
+           RowBox[{
+            TemplateBox[{
+              TagBox[
+               RowBox[{"Slot", "[", 
+                 InterpretationBox[
+                  StyleBox["\"1\"", ShowStringCharacters -> False], 1, 
+                  Editable -> False], "]"}], NumberForm[#, {4, 1}]& ], 
+              "\"\[Times]\""},
+             "RowDefault"], "&"}], ")"}], "/@", 
+          FractionBox["tOGRe", "tBuiltin"]}]}], "}"}], "]"}], ",", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{
+         StyleBox["#1",
+          StripOnInput->False,
+          FontWeight->Bold], "&"}], ")"}], "/@", 
+       RowBox[{"{", 
+        RowBox[{
+        "\"\<operator\>\"", ",", "\"\<built-in (s)\>\"", ",", 
+         "\"\<OGRe (s)\>\"", ",", "\"\<speedup\>\""}], "}"}]}]}], "]"}], ",", 
+    
+    RowBox[{"Frame", "\[Rule]", "All"}], ",", 
+    RowBox[{"Alignment", "\[Rule]", 
+     RowBox[{"{", 
+      RowBox[{"Left", ",", "Center"}], "}"}]}], ",", 
+    RowBox[{"Spacings", "\[Rule]", 
+     RowBox[{"{", 
+      RowBox[{"2", ",", "1"}], "}"}]}]}], "]"}]}]], "Input",
+ CellLabel->" In[5]:=",ExpressionUUID->"d21e05df-dc6d-4cf1-a4b4-ef7177fc3674"],
+
+Cell[OutputFormData["\<\
+operator      built-in (s)   OGRe (s)    speedup
+
+Christoffel   0.00177242     0.0132447   7.47263x
+
+Riemann       0.00947422     0.0737245   7.78159x
+
+Ricci         0.0072463      0.0774283   10.6852x
+
+RicciScalar   0.0073011      0.0875472   11.991x\
+\>"], "Output",
+ CellChangeTimes->{3.9889868512313347`*^9},
+ CellLabel->" Out[5]=",ExpressionUUID->"a9d0faf0-6e10-4eab-a2f3-c35b74970185"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"BarChart", "[", 
+  RowBox[{
+   RowBox[{"Transpose", "[", 
+    RowBox[{"{", 
+     RowBox[{"tBuiltin", ",", "tOGRe"}], "}"}], "]"}], ",", 
+   RowBox[{"ChartLegends", "\[Rule]", 
+    RowBox[{"{", 
+     RowBox[{"\"\<built-in\>\"", ",", "\"\<OGRe\>\""}], "}"}]}], ",", 
+   RowBox[{"ChartLabels", "\[Rule]", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"Placed", "[", 
+       RowBox[{"ops", ",", "Axis"}], "]"}], ",", "None"}], "}"}]}], ",", 
+   RowBox[{"BarSpacing", "\[Rule]", 
+    RowBox[{"{", 
+     RowBox[{"0.2`", ",", "1"}], "}"}]}], ",", 
+   RowBox[{
+   "PlotLabel", "\[Rule]", "\"\<seconds per call (lower is faster)\>\""}], 
+   ",", 
+   RowBox[{"LabelStyle", "\[Rule]", "12"}], ",", 
+   RowBox[{"ImageSize", "\[Rule]", "460"}], ",", 
+   RowBox[{"AspectRatio", "\[Rule]", "0.55`"}]}], "]"}]], "Input",
+ CellLabel->" In[6]:=",ExpressionUUID->"cc6ecef4-5f37-4c8a-8f10-9000020e7796"],
+
+Cell[OutputFormData["\<\
+Legended[-Graphics-, {Placed[SwatchLegend[{{Directive[EdgeForm[
+ 
+>          Directive[Thickness[Small], Opacity[0.644]]], GrayLevel[1]], 
+ 
+>        Directive[EdgeForm[Directive[Thickness[Small], Opacity[0.644]]], 
+ 
+>         GrayLevel[1]], Directive[EdgeForm[Directive[Thickness[Small], 
+ 
+>           Opacity[0.644]]], GrayLevel[1]], 
+ 
+>        Directive[EdgeForm[Directive[Thickness[Small], Opacity[0.644]]], 
+ 
+>         GrayLevel[1]]}, {Directive[EdgeForm[Directive[Thickness[Small], 
+ 
+>           Opacity[0.644]]], RGBColor[0.982864, 0.743147, 0.326267]], 
+ 
+>        Directive[EdgeForm[Directive[Thickness[Small], Opacity[0.644]]], 
+ 
+>         RGBColor[0.4992, 0.5552, 0.83093]]}}, {{}, {built-in, OGRe}}, 
+ 
+>      LegendMarkers -> {{None}, {Automatic, Automatic}}, 
+ 
+>      LabelStyle -> {{FontSize -> 12}, {FontSize -> 12}}, 
+ 
+>      LegendLayout -> Column], After, Identity]}]\
+\>"], "Output",
+ CellChangeTimes->{3.988986851590251*^9},
+ CellLabel->" Out[6]=",ExpressionUUID->"2b16a293-df58-4b11-8564-2ae948bb134b"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Takeaway", "Section",ExpressionUUID->"9670b5e0-e6ab-4f6d-bdc6-a5ddc933e0c3"],
+
+Cell["\<\
+Both implementations produce identical curvature (EquivalentQ -> True), and \
+the convention-independent invariants come out right: R = -20/L^2 and \
+Kretschmann = 40/L^4 for AdS5. On an explicit metric the built-in array \
+operators beat OGRe by about 10x, because OGRe's object system carries \
+overhead that does not pay off when the components are known up front. OGRe \
+is still the better tool for its own strengths -- interactive exploration, \
+index gymnastics, and harder symbolic simplification -- which is exactly why \
+the library keeps both and benchmarks them against each other rather than \
+picking one blindly.\
+\>", "Text",ExpressionUUID->"67dd7869-d794-411a-bb7e-c00998cf39d7"]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{808, 911},
+WindowMargins->{{460, Automatic}, {Automatic, 70}},
+WindowTitle->"AdS5 curvature: built-in vs OGRe",
+Visible->False,
+FrontEndVersion->"14.0 for Mac OS X ARM (64-bit) (December 12, 2023)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"a1a02182-68da-4185-94f3-4856dbc75fbc"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[626, 23, 123, 0, 70, "Title",ExpressionUUID->"adb3cbcc-7e65-47f0-b01e-f4f42ff091fe"],
+Cell[752, 25, 818, 11, 70, "Text",ExpressionUUID->"bf82112c-c89d-4ad1-be42-68f9fe4bc8b4"],
+Cell[CellGroupData[{
+Cell[1595, 40, 103, 0, 70, "Section",ExpressionUUID->"2c68e741-03a5-4979-9378-5701545165b8"],
+Cell[1701, 42, 262, 4, 70, "Text",ExpressionUUID->"208d60a4-3586-4944-99fb-52298c727808"],
+Cell[CellGroupData[{
+Cell[1988, 50, 1021, 25, 70, "Input",ExpressionUUID->"147e7dfc-e77c-4ff0-aa4d-ba07482afe43"],
+Cell[3012, 77, 198, 4, 70, "Output",ExpressionUUID->"7654c064-2af5-4a12-81a0-b514c6456df0"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[3259, 87, 88, 0, 70, "Section",ExpressionUUID->"bf9877ea-2b11-416b-914e-0d21dbb837db"],
+Cell[3350, 89, 216, 3, 70, "Text",ExpressionUUID->"1dc356ce-9903-4d8d-9091-a1d053374f8b"],
+Cell[CellGroupData[{
+Cell[3591, 96, 1067, 31, 70, "Input",ExpressionUUID->"b33611c7-aa61-4347-9d53-12186669db59"],
+Cell[4661, 129, 623, 14, 70, "Output",ExpressionUUID->"d3cc80b8-e617-444a-97e8-a1a5d83765dc"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[5333, 149, 117, 0, 70, "Section",ExpressionUUID->"91039ec8-5a0f-40ad-a3c9-b494625022b1"],
+Cell[5453, 151, 229, 4, 70, "Text",ExpressionUUID->"a43b72af-38e1-4a34-9ae1-f644bd715d5f"],
+Cell[CellGroupData[{
+Cell[5707, 159, 783, 21, 70, "Input",ExpressionUUID->"6104bead-a225-4e57-9ba5-e38418a2b14e"],
+Cell[6493, 182, 478, 14, 70, "Output",ExpressionUUID->"82a3e846-c8da-4fe0-a4f1-eea6e8370271"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[7020, 202, 114, 0, 70, "Section",ExpressionUUID->"f05dc781-154c-4188-9915-61fdb32e0c99"],
+Cell[7137, 204, 187, 3, 70, "Text",ExpressionUUID->"e298f712-6e7a-45fb-9ee9-57cfd441baab"],
+Cell[CellGroupData[{
+Cell[7349, 211, 503, 11, 70, "Input",ExpressionUUID->"f68a4a4b-9fbc-4d2e-b402-c59946d40592"],
+Cell[7855, 224, 169, 4, 70, "Output",ExpressionUUID->"89f90613-2c5a-4755-bd77-fb96d23b099f"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[8073, 234, 101, 0, 70, "Section",ExpressionUUID->"46c9e96e-83a3-4f88-9459-c7f55fde80c5"],
+Cell[8177, 236, 223, 3, 70, "Text",ExpressionUUID->"33ba2048-d52a-4197-bb63-40c00b5fdecf"],
+Cell[CellGroupData[{
+Cell[8425, 243, 3246, 95, 70, "Input",ExpressionUUID->"d21e05df-dc6d-4cf1-a4b4-ef7177fc3674"],
+Cell[11674, 340, 416, 12, 70, "Output",ExpressionUUID->"a9d0faf0-6e10-4eab-a2f3-c35b74970185"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[12127, 357, 908, 23, 70, "Input",ExpressionUUID->"cc6ecef4-5f37-4c8a-8f10-9000020e7796"],
+Cell[13038, 382, 1057, 28, 70, "Output",ExpressionUUID->"2b16a293-df58-4b11-8564-2ae948bb134b"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[14144, 416, 82, 0, 70, "Section",ExpressionUUID->"9670b5e0-e6ab-4f6d-bdc6-a5ddc933e0c3"],
+Cell[14229, 418, 706, 10, 70, "Text",ExpressionUUID->"67dd7869-d794-411a-bb7e-c00998cf39d7"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
+

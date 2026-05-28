@@ -1,0 +1,21 @@
+{
+  "id": "schwarzschild-kretschmann",
+  "prompt": "Write Mathematica code to compute the Ricci scalar and Kretschmann scalar of the Schwarzschild metric.",
+  "conventions": "mostly-plus signature; mass M; coords (t,r,th,ph); f(r)=1-2M/r; same curvature sign/index convention as the library (references/wolfram-conventions.md).",
+  "script": "schwarzschild-kretschmann.wl",
+  "loads": [],
+  "assertions": [
+    {
+      "type": "scalar",
+      "desc": "Ricci scalar R = 0 (vacuum / Ricci-flat)",
+      "wl": "ricciScalar",
+      "expect": "0"
+    },
+    {
+      "type": "scalar",
+      "desc": "Kretschmann K = 48 M^2 / r^6",
+      "wl": "kretschmann",
+      "expect": "48*M^2/r^6"
+    }
+  ]
+}

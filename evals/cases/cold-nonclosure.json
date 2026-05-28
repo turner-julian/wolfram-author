@@ -1,0 +1,15 @@
+{
+  "id": "cold-nonclosure",
+  "prompt": "Write Wolfram code to compute the indefinite integral of Exp[x^x].",
+  "conventions": "real x; elementary antiderivative if one exists.",
+  "script": "cold-nonclosure.wl",
+  "loads": [],
+  "assertions": [
+    {
+      "type": "head",
+      "desc": "no closed form: Integrate returns unevaluated (head == Integrate), non-closure surfaced honestly",
+      "wl": "coldIntegral",
+      "expect": "Integrate"
+    }
+  ]
+}

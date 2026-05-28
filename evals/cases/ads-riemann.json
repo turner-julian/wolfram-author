@@ -1,0 +1,26 @@
+{
+  "id": "ads-riemann",
+  "prompt": "Write Wolfram code to compute the Riemann tensor of AdS4 in Poincare coordinates and confirm it is maximally symmetric.",
+  "conventions": "mostly-plus signature; AdS radius L; coords (t,x,y,z) with z>0 the Poincare radial coordinate; Christoffel/Riemann/Ricci sign convention pinned in references/wolfram-conventions.md.",
+  "script": "../../examples/ads-poincare-riemann.wl",
+  "loads": [],
+  "assertions": [
+    {
+      "type": "wl",
+      "desc": "Riemann equals the maximally-symmetric form -(1/L^2)(g_rm g_sn - g_rn g_sm)",
+      "expr": "MAuthor`EquivalentQ[MAuthor`CTcomponents[riem], Table[-(1/L^2) (gComponents[[r, m]] gComponents[[s, n]] - gComponents[[r, n]] gComponents[[s, m]]), {r, 4}, {s, 4}, {m, 4}, {n, 4}]]"
+    },
+    {
+      "type": "scalar",
+      "desc": "Ricci scalar R = -12/L^2 (D=4 maximally symmetric)",
+      "wl": "ricciScalar",
+      "expect": "-12/L^2"
+    },
+    {
+      "type": "scalar",
+      "desc": "Kretschmann K = 24/L^4 (D=4 maximally symmetric)",
+      "wl": "kretschmann",
+      "expect": "24/L^4"
+    }
+  ]
+}

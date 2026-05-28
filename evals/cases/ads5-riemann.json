@@ -1,0 +1,27 @@
+{
+  "id": "ads5-riemann",
+  "prompt": "Compute the Riemann tensor of AdS5 in Poincare coordinates and confirm it is maximally symmetric.",
+  "conventions": "mostly-plus signature; AdS radius L; coords (t,x1,x2,x3,z), z>0; curvature sign/index convention per references/wolfram-conventions.md.",
+  "note": "Regression guard for the 'Riemann tensor AdS 5' Cowork failure: the delivered script must self-load lib/ by absolute path (MAuthor.wl AND GR.wl) and use full context prefixes, so it runs with no --load flags. Run with NO loads here.",
+  "script": "ads5-riemann.wl",
+  "loads": [],
+  "assertions": [
+    {
+      "type": "wl",
+      "desc": "Riemann equals the maximally-symmetric form",
+      "expr": "MAuthor`EquivalentQ[MAuthor`CTcomponents[riem], maxSymRiemann]"
+    },
+    {
+      "type": "scalar",
+      "desc": "Ricci scalar R = -20/L^2 (D=5 maximally symmetric)",
+      "wl": "ricciScalar",
+      "expect": "-20/L^2"
+    },
+    {
+      "type": "scalar",
+      "desc": "Kretschmann K = 40/L^4 (D=5 maximally symmetric)",
+      "wl": "kretschmann",
+      "expect": "40/L^4"
+    }
+  ]
+}

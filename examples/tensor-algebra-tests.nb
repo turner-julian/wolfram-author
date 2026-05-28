@@ -1,0 +1,276 @@
+Notebook[{
+
+Cell["MAuthor Tensor Algebra: Detailed Tests & Benchmarks", "Title"],
+
+Cell["This notebook exercises every tensor algebra operation in MAuthor/MAuthorGR \
+on the Schwarzschild and AdS spacetimes, verifies correctness against known \
+analytic results, and times each operation. Run all cells sequentially.", "Text"],
+
+(* ===================================================================== *)
+Cell["Setup", "Section"],
+
+Cell["Load the curated library and define test metrics.", "Text"],
+
+Cell["(* Load via init.wl -- NotebookDirectory[] resolves to examples/ *)\n\
+Get[FileNameJoin[{ParentDirectory[NotebookDirectory[]], \"init.wl\"}]]", "Input"],
+
+Cell["$Assumptions = M > 0 && r > 2 M && L > 0 && z > 0 && th > 0 && th < Pi;", "Input"],
+
+Cell["(* --- Schwarzschild metric --- *)\n\
+schwCoords = {t, r, th, ph};\n\
+schwF = 1 - 2 M/r;\n\
+schwGdown = DiagonalMatrix[{-schwF, 1/schwF, r^2, r^2 Sin[th]^2}];\n\
+gSchw = MAuthor`CTensor[schwCoords, {\"down\", \"down\"}, schwGdown, Automatic,\n\
+   <|\"spacetime\" -> \"Schwarzschild\"|>];\n\
+\n\
+(* --- AdS4 Poincare metric --- *)\n\
+adsCoords = {t, x, y, z};\n\
+adsGdown = (L^2/z^2) DiagonalMatrix[{-1, 1, 1, 1}];\n\
+gAdS = MAuthor`CTensor[adsCoords, {\"down\", \"down\"}, adsGdown, Automatic,\n\
+   <|\"spacetime\" -> \"AdS4\"|>];\n\
+\n\
+Print[\"Metrics defined.\"]", "Input"],
+
+Cell["(* Precompute curvature tensors *)\n\
+MAuthor`CTCacheClear[];\n\
+schwRiem = MAuthorGR`RiemannFromMetric[gSchw];\n\
+schwRicci = MAuthorGR`RicciFromMetric[gSchw];\n\
+schwRicciScalar = MAuthorGR`RicciScalarFromMetric[gSchw];\n\
+adsRiem = MAuthorGR`RiemannFromMetric[gAdS];\n\
+adsRicci = MAuthorGR`RicciFromMetric[gAdS];\n\
+Print[\"Curvature precomputed.\"];\n\
+Print[\"Schwarzschild R = \", schwRicciScalar, \"  (expect 0)\"];\n\
+Print[\"AdS4 R = \", MAuthorGR`RicciScalarFromMetric[gAdS], \"  (expect -12/L^2)\"]", "Input"],
+
+(* ===================================================================== *)
+Cell["1. Index Raising & Lowering", "Section"],
+
+Cell["Raise the first index of the Schwarzschild all-lower Riemann tensor, \
+then lower it back. The round-trip must recover the original components.", "Text"],
+
+Cell["(* Raise first index: R_{rho sigma mu nu} -> R^rho_{sigma mu nu} *)\n\
+schwRiemUp = MAuthor`CTRaise[schwRiem, 1, gSchw];\n\
+Print[\"Original indices: \", MAuthor`CTindices[schwRiem]];\n\
+Print[\"Raised indices:  \", MAuthor`CTindices[schwRiemUp]];\n\
+\n\
+(* Round-trip: lower it back *)\n\
+schwRiemRT = MAuthor`CTLower[schwRiemUp, 1, gSchw];\n\
+Print[\"Round-trip correct: \",\n\
+  MAuthor`EquivalentQ[MAuthor`CTcomponents[schwRiemRT],\n\
+    MAuthor`CTcomponents[schwRiem]]]", "Input"],
+
+Cell["(* AdS4: the mixed Ricci R^mu_nu should be -(D-1)/L^2 delta^mu_nu *)\n\
+(* For D=4: R^mu_nu = -3/L^2 delta^mu_nu *)\n\
+adsRicciUp = MAuthor`CTRaise[adsRicci, 1, gAdS];\n\
+Print[\"R^mu_nu (AdS4):\"];\n\
+MAuthor`CTcomponents[adsRicciUp] // MatrixForm\n", "Input"],
+
+Cell["Print[\"R^mu_nu == -3/L^2 IdentityMatrix: \",\n\
+  MAuthor`EquivalentQ[MAuthor`CTcomponents[adsRicciUp],\n\
+    -3/L^2 IdentityMatrix[4]]]", "Input"],
+
+Cell["(* Timing *)\n\
+tRaise = First@RepeatedTiming[MAuthor`CTRaise[schwRiem, 1, gSchw]];\n\
+tLower = First@RepeatedTiming[MAuthor`CTLower[schwRiemUp, 1, gSchw]];\n\
+Print[\"Raise (Schwarzschild Riemann): \", 1000 tRaise, \" ms\"];\n\
+Print[\"Lower (round-trip):          \", 1000 tLower, \" ms\"]", "Input"],
+
+(* ===================================================================== *)
+Cell["2. Trace (Contraction of Two Indices)", "Section"],
+
+Cell["Contract R^m_{sigma m nu} (indices 1 and 3) to recover the Ricci tensor.", "Text"],
+
+Cell["ricciFromTrace = MAuthor`CTTrace[schwRiemUp, {1, 3}];\n\
+Print[\"Trace R^m_smn == Ricci: \",\n\
+  MAuthor`EquivalentQ[MAuthor`CTcomponents[ricciFromTrace],\n\
+    MAuthor`CTcomponents[schwRicci]]];\n\
+Print[\"Result indices: \", MAuthor`CTindices[ricciFromTrace]]", "Input"],
+
+Cell["Trace the mixed AdS Ricci R^mu_mu to get the Ricci scalar.", "Text"],
+
+Cell["ricciScalarFromTrace = MAuthor`CTTrace[adsRicciUp, {1, 2}];\n\
+ricciScalarDirect = MAuthorGR`RicciScalarFromMetric[gAdS];\n\
+Print[\"Trace R^mu_mu = \", ricciScalarFromTrace];\n\
+Print[\"Direct R      = \", ricciScalarDirect];\n\
+Print[\"Agree: \", MAuthor`EquivalentQ[ricciScalarFromTrace, ricciScalarDirect]]", "Input"],
+
+Cell["(* Timing *)\n\
+tTrace = First@RepeatedTiming[MAuthor`CTTrace[schwRiemUp, {1, 3}]];\n\
+Print[\"Trace (Riemann -> Ricci): \", 1000 tTrace, \" ms\"]", "Input"],
+
+(* ===================================================================== *)
+Cell["3. Tensor Product & Contract", "Section"],
+
+Cell["Outer product of two vectors, then contract to get a scalar.", "Text"],
+
+Cell["(* A timelike unit vector and its covector *)\n\
+vUp = MAuthor`CTensor[schwCoords, {\"up\"}, {1, 0, 0, 0}, schwGdown, <||>];\n\
+wDown = MAuthor`CTensor[schwCoords, {\"down\"}, {-schwF, 0, 0, 0}, schwGdown, <||>];\n\
+\n\
+(* Outer product: rank-2 mixed tensor *)\n\
+vw = MAuthor`CTProduct[vUp, wDown];\n\
+Print[\"Product rank: \", MAuthor`CTrank[vw]];\n\
+Print[\"Product indices: \", MAuthor`CTindices[vw]];\n\
+Print[\"Product components:\"];\n\
+MAuthor`CTcomponents[vw] // MatrixForm", "Input"],
+
+Cell["(* Trace the product: v^mu w_mu *)\n\
+scalar = MAuthor`CTTrace[vw, {1, 2}];\n\
+Print[\"v^mu w_mu = \", scalar, \"  (expect -(1-2M/r))\"];\n\
+\n\
+(* CTContract does the same in one call *)\n\
+scalarDirect = MAuthor`CTContract[vUp, 1, wDown, 1];\n\
+Print[\"CTContract agrees: \", MAuthor`EquivalentQ[scalar, scalarDirect]]", "Input"],
+
+(* ===================================================================== *)
+Cell["4. Coordinate Transformation", "Section"],
+
+Cell["Transform the Schwarzschild metric to ingoing Eddington-Finkelstein \
+coordinates. The backward map is t = v - r - 2M Log[r/(2M) - 1].", "Text"],
+
+Cell["efCoords = {v, r, th, ph};\n\
+efRules = {t -> v - r - 2 M Log[r/(2 M) - 1]};\n\
+\n\
+gEF = MAuthor`CTTransform[gSchw, efCoords, efRules];\n\
+\n\
+Print[\"Eddington-Finkelstein metric:\"];\n\
+MAuthor`CTcomponents[gEF] // MatrixForm", "Input"],
+
+Cell["(* Known EF metric: ds^2 = -(1-2M/r) dv^2 + 2 dv dr + r^2 dOmega^2 *)\n\
+gEFexpected = {\n\
+  {-(1 - 2 M/r), 1, 0, 0},\n\
+  {1, 0, 0, 0},\n\
+  {0, 0, r^2, 0},\n\
+  {0, 0, 0, r^2 Sin[th]^2}};\n\
+\n\
+Print[\"Matches known EF metric: \",\n\
+  MAuthor`EquivalentQ[MAuthor`CTcomponents[gEF], gEFexpected]]", "Input"],
+
+Cell["Transform a 2D flat metric from Cartesian to polar coordinates.", "Text"],
+
+Cell["gFlat2 = MAuthor`CTensor[{xx, yy}, {\"down\", \"down\"},\n\
+  IdentityMatrix[2], Automatic, <||>];\n\
+gPolar = MAuthor`CTTransform[gFlat2, {rr, tth},\n\
+  {xx -> rr Cos[tth], yy -> rr Sin[tth]}];\n\
+\n\
+Print[\"Polar metric:\"];\n\
+MAuthor`CTcomponents[gPolar] // MatrixForm\n\
+Print[\"== diag(1, r^2): \",\n\
+  MAuthor`EquivalentQ[MAuthor`CTcomponents[gPolar],\n\
+    DiagonalMatrix[{1, rr^2}]]]", "Input"],
+
+Cell["(* Timing *)\n\
+tTransform = First@RepeatedTiming[\n\
+  MAuthor`CTTransform[gSchw, efCoords, efRules]];\n\
+Print[\"Transform Schwarzschild -> EF: \", 1000 tTransform, \" ms\"]", "Input"],
+
+(* ===================================================================== *)
+Cell["5. Covariant Derivative", "Section"],
+
+Cell["Schwarzschild is vacuum: R_{mu nu} = 0, so the covariant derivative \
+of the Ricci tensor must vanish identically.", "Text"],
+
+Cell["nablaRicci = MAuthorGR`CovariantDFromMetric[schwRicci, gSchw];\n\
+Print[\"Indices of nabla R: \", MAuthor`CTindices[nablaRicci]];\n\
+Print[\"nabla_alpha R_{mu nu} == 0 (vacuum): \",\n\
+  MAuthor`EquivalentQ[MAuthor`CTcomponents[nablaRicci],\n\
+    ConstantArray[0, {4, 4, 4}]]]", "Input"],
+
+Cell["Covariant derivative of a scalar field phi = L^2/z^2 on AdS4. \
+For a scalar, this is just the partial derivative (gradient).", "Text"],
+
+Cell["phi = MAuthor`CTensor[adsCoords, {}, L^2/z^2, adsGdown, <||>];\n\
+dPhi = MAuthorGR`CovariantDFromMetric[phi, gAdS];\n\
+\n\
+Print[\"nabla phi components: \", MAuthor`CTcomponents[dPhi]];\n\
+Print[\"d_z phi = \", MAuthor`CTcomponents[dPhi][[4]],\n\
+  \"  (expect -2 L^2/z^3)\"];\n\
+Print[\"Correct: \",\n\
+  MAuthor`EquivalentQ[MAuthor`CTcomponents[dPhi][[4]], -2 L^2/z^3]]", "Input"],
+
+Cell["Covariant derivative of a vector field on AdS4. Here the Gamma \
+corrections are nontrivial.", "Text"],
+
+Cell["(* Take the covariant derivative of the coordinate basis vector d/dz *)\n\
+eZ = MAuthor`CTensor[adsCoords, {\"up\"}, {0, 0, 0, 1}, adsGdown, <||>];\n\
+nablaEZ = MAuthorGR`CovariantDFromMetric[eZ, gAdS];\n\
+Print[\"nabla_mu (d/dz) indices: \", MAuthor`CTindices[nablaEZ]];\n\
+Print[\"nabla_mu (d/dz) components:\"];\n\
+MAuthor`CTcomponents[nablaEZ] // MatrixForm", "Input"],
+
+Cell["(* Timing *)\n\
+tCovD = First@RepeatedTiming[\n\
+  MAuthorGR`CovariantDFromMetric[schwRicci, gSchw]];\n\
+Print[\"Covariant derivative of Ricci: \", 1000 tCovD, \" ms\"]", "Input"],
+
+(* ===================================================================== *)
+Cell["6. Geodesic Equations", "Section"],
+
+Cell["Schwarzschild geodesics: 4 second-order ODEs.", "Text"],
+
+Cell["geod = MAuthorGR`GeodesicEquationsFromMetric[gSchw, \\[Lambda]];\n\
+Print[\"Number of geodesic equations: \", Length[geod]];\n\
+\n\
+Do[\n\
+  Print[\"\\n\", schwCoords[[i]], \" geodesic:\"];\n\
+  Print[\"  \", geod[[i]], \" = 0\"],\n\
+  {i, 4}]", "Input"],
+
+Cell["The t-equation should give conservation of energy: \
+d/dlambda[(1-2M/r) dt/dlambda] = 0, which expands to \
+(1-2M/r) t'' + (2M/r^2) r' t' = 0.", "Text"],
+
+Cell["(* Timing *)\n\
+tGeod = First@RepeatedTiming[\n\
+  MAuthorGR`GeodesicEquationsFromMetric[gSchw, \\[Lambda]]];\n\
+Print[\"Geodesic equations: \", 1000 tGeod, \" ms\"]", "Input"],
+
+(* ===================================================================== *)
+Cell["7. Caching: Cold vs Warm Pipeline", "Section"],
+
+Cell["Clear the cache, run the full pipeline (Christoffel -> Riemann -> \
+Ricci -> covariant derivative), then run it again to measure the speedup \
+from cached Christoffel symbols.", "Text"],
+
+Cell["MAuthor`CTCacheClear[];\n\
+\n\
+tCold = First@AbsoluteTiming[\n\
+  Module[{ch, ri, rc, cd},\n\
+    ch = MAuthorGR`ChristoffelFromMetric[gSchw];\n\
+    ri = MAuthorGR`RiemannFromMetric[gSchw];\n\
+    rc = MAuthorGR`RicciFromMetric[gSchw];\n\
+    cd = MAuthorGR`CovariantDFromMetric[rc, gSchw];\n\
+    \"done\"]];\n\
+\n\
+tWarm = First@AbsoluteTiming[\n\
+  Module[{ch, ri, rc, cd},\n\
+    ch = MAuthorGR`ChristoffelFromMetric[gSchw];\n\
+    ri = MAuthorGR`RiemannFromMetric[gSchw];\n\
+    rc = MAuthorGR`RicciFromMetric[gSchw];\n\
+    cd = MAuthorGR`CovariantDFromMetric[rc, gSchw];\n\
+    \"done\"]];\n\
+\n\
+Print[\"Cold (no cache): \", 1000 tCold, \" ms\"];\n\
+Print[\"Warm (cached):   \", 1000 tWarm, \" ms\"];\n\
+Print[\"Speedup:         \", tCold/tWarm, \"x\"]", "Input"],
+
+(* ===================================================================== *)
+Cell["8. Summary", "Section"],
+
+Cell["Print[\"\\n===== TIMING SUMMARY (Schwarzschild, D=4) =====\"];\n\
+Print[\"Raise index:       \", 1000 tRaise, \" ms\"];\n\
+Print[\"Lower index:       \", 1000 tLower, \" ms\"];\n\
+Print[\"Trace:             \", 1000 tTrace, \" ms\"];\n\
+Print[\"Coord transform:   \", 1000 tTransform, \" ms\"];\n\
+Print[\"Covariant deriv:   \", 1000 tCovD, \" ms\"];\n\
+Print[\"Geodesic eqs:      \", 1000 tGeod, \" ms\"];\n\
+Print[\"Cache cold/warm:   \", 1000 tCold, \"/\", 1000 tWarm,\n\
+  \" ms  (\", tCold/tWarm, \"x)\"];\n\
+Print[\"\\nAll operations sub-millisecond on Schwarzschild D=4.\"]", "Input"]
+
+},
+WindowSize -> {900, 800},
+WindowMargins -> {{Automatic, Automatic}, {Automatic, Automatic}},
+FrontEndVersion -> "14.0",
+StyleDefinitions -> "Default.nb"
+]

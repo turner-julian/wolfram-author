@@ -1,0 +1,15 @@
+{
+  "id": "symbolic-gaussian",
+  "prompt": "Give me Wolfram Language to evaluate the Gaussian integral of Exp[-a x^2] over the whole real line for a > 0.",
+  "conventions": "real positive parameter a; principal real-valued result.",
+  "script": "symbolic-gaussian.wl",
+  "loads": [],
+  "assertions": [
+    {
+      "type": "scalar",
+      "desc": "Gaussian integral = Sqrt[Pi/a] (EquivalentQ in kernel)",
+      "wl": "gaussInt",
+      "expect": "Sqrt[Pi/a]"
+    }
+  ]
+}
