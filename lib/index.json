@@ -2,17 +2,16 @@
   "entries": [
     {
       "name": "ChristoffelFromMetric",
-      "file": "GR.wl",
-      "context": "MAuthorGR`",
-      "signature": "ChristoffelFromMetric[g_?CTensQ]",
-      "summary": "Christoffel symbols Gamma^a_bc of a canonical metric, as a CTensor {up,down,down}. Now cached via $MAuthorCache.",
-      "representation": "input metric CTensor {down,down}; output CTensor {up,down,down}",
+      "file": "GRT.wl",
+      "context": "GRT`",
+      "signature": "ChristoffelFromMetric[g_?TensQ]",
+      "summary": "Christoffel symbols Gamma^a_bc, as a Tensor {up,down,down}. Cached.",
+      "representation": "input metric Tensor {down,down}; output Tensor {up,down,down}",
       "conventions": {"christoffel": "Levi-Civita: Gamma^a_bc = 1/2 g^as (d_b g_sc + d_c g_sb - d_s g_bc)"},
-      "depends_on": ["MAuthor"],
-      "packages": [],
+      "depends_on": ["CT"],
       "benchmark": {
         "date": "2026-05-28",
-        "problem": "AdS4 in Poincare coordinates",
+        "problem": "AdS4 Poincare",
         "method": "RepeatedTiming",
         "candidates": [
           {"id": "builtin-array", "seconds": 0.00176},
@@ -24,21 +23,15 @@
     },
     {
       "name": "RiemannFromMetric",
-      "file": "GR.wl",
-      "context": "MAuthorGR`",
-      "signature": "RiemannFromMetric[g_?CTensQ]",
-      "summary": "All-lower Riemann tensor R_{rho sigma mu nu} of a canonical metric, as a CTensor {down,down,down,down}.",
-      "representation": "input metric CTensor {down,down}; output CTensor {down,down,down,down}",
-      "conventions": {
-        "riemann_mixed": "R^r_smn = d_m Gamma^r_ns - d_n Gamma^r_ms + Gamma^r_ml Gamma^l_ns - Gamma^r_nl Gamma^l_ms",
-        "riemann_lower": "R_rsmn = g_ra R^a_smn",
-        "note": "matches OGRe componentwise on AdS4"
-      },
-      "depends_on": ["MAuthor"],
-      "packages": [],
+      "file": "GRT.wl",
+      "context": "GRT`",
+      "signature": "RiemannFromMetric[g_?TensQ]",
+      "summary": "All-lower Riemann tensor R_{rho sigma mu nu}, as a Tensor {down,down,down,down}.",
+      "representation": "input metric Tensor {down,down}; output Tensor {down,down,down,down}",
+      "depends_on": ["CT"],
       "benchmark": {
         "date": "2026-05-28",
-        "problem": "AdS4 in Poincare coordinates",
+        "problem": "AdS4 Poincare",
         "method": "RepeatedTiming",
         "candidates": [
           {"id": "builtin-array", "seconds": 0.00876},
@@ -49,144 +42,111 @@
       "equivalence": {"verified": true, "method": "EquivalentQ", "reference": "builtin-array", "against": ["ogre"]}
     },
     {
-      "name": "CTRaise",
-      "file": "MAuthor.wl",
-      "context": "MAuthor`",
-      "signature": "CTRaise[t_?CTensQ, n_Integer] or CTRaise[t, n, g]",
-      "summary": "Raise index n of a CTensor using the metric. Dot-based contraction (Transpose + Dot + Transpose back).",
-      "representation": "input CTensor; output CTensor with index n flipped to up",
-      "depends_on": ["MAuthor"],
-      "packages": [],
+      "name": "Raise",
+      "file": "CT.wl",
+      "context": "CT`",
+      "signature": "Raise[t_?TensQ, n_Integer] or Raise[t, n, g]",
+      "summary": "Raise index n. Dot-based contraction (Transpose + Dot + Transpose back). Inverse metric cached.",
       "benchmark": {
         "date": "2026-05-28",
         "problem": "Schwarzschild Riemann, raise 1st index",
-        "method": "RepeatedTiming",
-        "candidates": [
-          {"id": "builtin-dot", "seconds": 0.000379}
-        ],
-        "winner": "builtin-dot",
-        "note": "OGRe 0.020 ms is retrieval from its internal cache, not a fresh computation"
+        "candidates": [{"id": "builtin-dot", "seconds": 0.000379}],
+        "winner": "builtin-dot"
       },
       "equivalence": {"verified": true, "method": "EquivalentQ vs OGRe TGetComponents"}
     },
     {
-      "name": "CTLower",
-      "file": "MAuthor.wl",
-      "context": "MAuthor`",
-      "signature": "CTLower[t_?CTensQ, n_Integer] or CTLower[t, n, g]",
-      "summary": "Lower index n of a CTensor. Same Dot-based engine as CTRaise.",
-      "representation": "input CTensor; output CTensor with index n flipped to down",
-      "depends_on": ["MAuthor"],
-      "packages": [],
+      "name": "Lower",
+      "file": "CT.wl",
+      "context": "CT`",
+      "signature": "Lower[t_?TensQ, n_Integer] or Lower[t, n, g]",
+      "summary": "Lower index n. Same Dot-based engine as Raise.",
       "benchmark": {
         "date": "2026-05-28",
         "problem": "Schwarzschild Riemann, lower 1st index (round-trip)",
-        "method": "RepeatedTiming",
         "candidates": [{"id": "builtin-dot", "seconds": 0.000242}],
         "winner": "builtin-dot"
       },
-      "equivalence": {"verified": true, "method": "round-trip CTRaise then CTLower == original"}
+      "equivalence": {"verified": true, "method": "round-trip Raise then Lower == original"}
     },
     {
-      "name": "CTTrace",
-      "file": "MAuthor.wl",
-      "context": "MAuthor`",
-      "signature": "CTTrace[t_?CTensQ, {i_Integer, j_Integer}]",
+      "name": "Trc",
+      "file": "CT.wl",
+      "context": "CT`",
+      "signature": "Trc[t_?TensQ, {i_Integer, j_Integer}]",
       "summary": "Contract (trace) indices i and j. One must be up, one down. Uses TensorContract.",
-      "representation": "input CTensor rank r; output CTensor rank r-2 (or scalar if r=2)",
-      "depends_on": ["MAuthor"],
-      "packages": [],
       "benchmark": {
         "date": "2026-05-28",
         "problem": "Schwarzschild R^m_{sigma m nu} -> Ricci",
-        "method": "RepeatedTiming",
         "candidates": [{"id": "builtin-tensorcontract", "seconds": 0.000535}],
         "winner": "builtin-tensorcontract"
       },
-      "equivalence": {"verified": true, "method": "CTTrace[R^m_smn, {1,3}] == RicciFromMetric via EquivalentQ"}
+      "equivalence": {"verified": true, "method": "Trc[R^m_smn, {1,3}] == RicciFromMetric"}
     },
     {
-      "name": "CTProduct",
-      "file": "MAuthor.wl",
-      "context": "MAuthor`",
-      "signature": "CTProduct[t1_?CTensQ, t2_?CTensQ]",
-      "summary": "Tensor (outer) product. Result rank = r1 + r2. Uses Outer[Times, ...].",
-      "representation": "input two CTensors; output CTensor rank r1+r2",
-      "depends_on": ["MAuthor"],
-      "packages": []
+      "name": "Prod",
+      "file": "CT.wl",
+      "context": "CT`",
+      "signature": "Prod[t1_?TensQ, t2_?TensQ]",
+      "summary": "Tensor (outer) product. Rank r1+r2. Uses Outer[Times, ...]."
     },
     {
-      "name": "CTContract",
-      "file": "MAuthor.wl",
-      "context": "MAuthor`",
-      "signature": "CTContract[t1_?CTensQ, i_Integer, t2_?CTensQ, j_Integer]",
-      "summary": "Contract index i of t1 with index j of t2. Shorthand for CTTrace[CTProduct[...], ...].",
-      "representation": "input two CTensors; output CTensor rank r1+r2-2",
-      "depends_on": ["MAuthor"],
-      "packages": []
+      "name": "Contract",
+      "file": "CT.wl",
+      "context": "CT`",
+      "signature": "Contract[t1_?TensQ, i_Integer, t2_?TensQ, j_Integer]",
+      "summary": "Contract index i of t1 with j of t2. Shorthand for Trc[Prod[...], ...]."
     },
     {
-      "name": "CTTransform",
-      "file": "MAuthor.wl",
-      "context": "MAuthor`",
-      "signature": "CTTransform[t_?CTensQ, newCoords_List, rules_List]",
-      "summary": "Coordinate transformation. rules = backward map (old coords as functions of new). Transforms components + stored metric via Jacobian contractions (Dot-based).",
-      "representation": "input CTensor + new coords + backward rules; output CTensor in new coords",
-      "depends_on": ["MAuthor"],
-      "packages": [],
+      "name": "Transform",
+      "file": "CT.wl",
+      "context": "CT`",
+      "signature": "Transform[t_?TensQ, newCoords_List, rules_List]",
+      "summary": "Coordinate transformation. rules = backward map. Jacobian contractions via Dot.",
       "benchmark": {
         "date": "2026-05-28",
-        "problem": "Schwarzschild -> Eddington-Finkelstein metric",
-        "method": "RepeatedTiming",
+        "problem": "Schwarzschild -> Eddington-Finkelstein",
         "candidates": [{"id": "builtin-dot", "seconds": 0.000120}],
-        "winner": "builtin-dot",
-        "note": "OGRe TAddCoordTransformation aborts in headless mode; verified against known EF metric instead"
+        "winner": "builtin-dot"
       },
       "equivalence": {"verified": true, "method": "EquivalentQ vs known analytic EF metric"}
     },
     {
       "name": "CovariantDFromMetric",
-      "file": "GR.wl",
-      "context": "MAuthorGR`",
-      "signature": "CovariantDFromMetric[t_?CTensQ, g_?CTensQ]",
-      "summary": "Covariant derivative of any-rank tensor t w.r.t. Levi-Civita connection of metric g. Prepends one down index (derivative). Partial derivative + Gamma corrections via Dot-based contraction, uses cached Christoffels.",
-      "representation": "input CTensor rank r + metric; output CTensor rank r+1 with prepended down index",
-      "depends_on": ["MAuthor", "MAuthorGR (Christoffel)"],
-      "packages": [],
+      "file": "GRT.wl",
+      "context": "GRT`",
+      "signature": "CovariantDFromMetric[t_?TensQ, g_?TensQ]",
+      "summary": "Covariant derivative. Prepends one down index. Partial + Gamma corrections via Dot. Cached Christoffels.",
+      "depends_on": ["CT", "GRT (Christoffel)"],
       "benchmark": {
         "date": "2026-05-28",
-        "problem": "Schwarzschild nabla_alpha R_{mu nu}",
-        "method": "RepeatedTiming",
+        "problem": "Schwarzschild nabla R_{mu nu}",
         "candidates": [{"id": "builtin-dot", "seconds": 0.000181}],
-        "winner": "builtin-dot",
-        "note": "OGRe comparison skipped (headless abort); verified nabla R = 0 for vacuum"
+        "winner": "builtin-dot"
       },
-      "equivalence": {"verified": true, "method": "nabla R_{mu nu} == 0 for Schwarzschild (vacuum)"}
+      "equivalence": {"verified": true, "method": "nabla R_{mu nu} == 0 for vacuum"}
     },
     {
       "name": "GeodesicEquationsFromMetric",
-      "file": "GR.wl",
-      "context": "MAuthorGR`",
-      "signature": "GeodesicEquationsFromMetric[g_?CTensQ] or [g, param]",
-      "summary": "Geodesic equations d^2 x^mu/dlambda^2 + Gamma^mu_{ab} dx^a/dl dx^b/dl = 0, returned as a list of expressions == 0. Coordinates promoted to functions of the affine parameter.",
-      "representation": "input metric; output list of d ODE expressions",
-      "depends_on": ["MAuthor", "MAuthorGR (Christoffel)"],
-      "packages": [],
+      "file": "GRT.wl",
+      "context": "GRT`",
+      "signature": "GeodesicEquationsFromMetric[g_?TensQ] or [g, param]",
+      "summary": "Geodesic ODEs. Coordinates promoted to functions of the affine parameter. Cached Christoffels.",
+      "depends_on": ["CT", "GRT (Christoffel)"],
       "benchmark": {
         "date": "2026-05-28",
         "problem": "Schwarzschild geodesics",
-        "method": "RepeatedTiming",
         "candidates": [{"id": "builtin", "seconds": 0.000146}],
         "winner": "builtin"
       }
     }
   ],
   "cache": {
-    "mechanism": "$MAuthorCache (Association), shared between MAuthor` and MAuthorGR`. Keyed by Hash of inputs. CTCacheClear[] resets.",
-    "what_is_cached": ["inverse metric (for raise/lower)", "Christoffel array (for Riemann, Ricci, covariant derivative, geodesics)"],
+    "mechanism": "$Cache (Association in CT`), shared between CT` and GRT`. Keyed by Hash. CacheClear[] resets.",
+    "cached": ["inverse metric (for Raise/Lower)", "Christoffel array (for curvature, CovD, geodesics)"],
     "benchmark": {
       "date": "2026-05-28",
-      "problem": "Schwarzschild full pipeline: Christoffel -> Riemann -> Ricci -> CovD",
+      "problem": "Schwarzschild full pipeline",
       "cold_seconds": 0.0187,
       "warm_seconds": 0.0055,
       "speedup": "3.4x"

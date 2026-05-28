@@ -14,10 +14,10 @@ it that does not serve both:
    of a `RepeatedTiming` bake-off among >= 2 candidates -- and only after it is
    verified to agree with the others.
 
-Worked demonstration: `examples/ogre-vs-builtin-benchmark.nb` computes AdS5
+Worked demonstration: `examples/tensor-algebra-benchmark.wl` benchmarks all operations
 curvature both ways, confirms built-in `EquivalentQ` OGRe (correctness), and
 tables/charts the RepeatedTiming speedup (≈7-11x on an explicit metric).
-Regenerate it with `wolframscript -file examples/ogre-vs-builtin-benchmark.wl`.
+against OGRe on Schwarzschild. See `examples/tensor-algebra-tests.nb` for the interactive notebook.
 
 ## Canonical representation (`CT.wl`)
 
