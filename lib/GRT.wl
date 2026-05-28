@@ -1,12 +1,12 @@
 (* ::Package:: *)
 
-(* MAuthorGR` -- general-relativity curvature operators on the canonical tensor
+(* GRT` -- general-relativity curvature operators on the canonical tensor
    representation, plus the canonical <-> OGRe adapter.
 
    Two implementations of each operator coexist on purpose: a built-in array
    implementation (zero package dependencies, the from-scratch reference) and an
    OGRe-backed one (the *OGRe-suffixed functions). They are kept equivalent by
-   the benchmark gate (bench.py + MAuthor`EquivalentQ); the faster one is what a
+   the benchmark gate (bench.py + CT`EquivalentQ); the faster one is what a
    generated script composes, the other is the cross-check.
 
    Sign/index conventions: Christoffel is Levi-Civita,
@@ -16,18 +16,18 @@
    lowered to R_rsmn = g_ra R^a_smn; Ricci R_sn = R^m_smn; scalar R = g^sn R_sn.
    This matches OGRe's convention (verified componentwise on AdS4). *)
 
-BeginPackage["MAuthorGR`", {"MAuthor`"}];
+BeginPackage["GRT`", {"CT`"}];
 
 ChristoffelFromMetric::usage =
   "ChristoffelFromMetric[g] gives the Christoffel symbols Gamma^a_bc of a \
-canonical metric CTensor g (indices {down,down}), as a CTensor with index \
+canonical metric Tensor g (indices {down,down}), as a Tensor with index \
 positions {up,down,down}. (Connection coefficients, not a tensor, stored in \
-CTensor form for uniformity.)";
+Tensor form for uniformity.)";
 RiemannFromMetric::usage =
   "RiemannFromMetric[g] gives the all-lower Riemann tensor R_{rho sigma mu nu} \
-of a canonical metric g, as a CTensor with indices {down,down,down,down}.";
+of a canonical metric g, as a Tensor with indices {down,down,down,down}.";
 RicciFromMetric::usage =
-  "RicciFromMetric[g] gives the Ricci tensor R_{mu nu} as a CTensor {down,down}.";
+  "RicciFromMetric[g] gives the Ricci tensor R_{mu nu} as a Tensor {down,down}.";
 RicciScalarFromMetric::usage =
   "RicciScalarFromMetric[g] gives the Ricci scalar (a scalar expression).";
 KretschmannFromMetric::usage =
@@ -39,15 +39,15 @@ ToOGReMetric::usage =
 returns its (unique) OGRe ID string. Requires OGRe to be loaded (--load ogre).";
 RiemannFromMetricOGRe::usage =
   "RiemannFromMetricOGRe[g] computes the all-lower Riemann tensor of g via OGRe \
-and returns it as a canonical CTensor. Requires OGRe.";
-RicciFromMetricOGRe::usage = "Ricci tensor via OGRe, as a canonical CTensor.";
+and returns it as a canonical Tensor. Requires OGRe.";
+RicciFromMetricOGRe::usage = "Ricci tensor via OGRe, as a canonical Tensor.";
 ChristoffelFromMetricOGRe::usage =
-  "Christoffel symbols via OGRe, as a canonical CTensor {up,down,down}.";
+  "Christoffel symbols via OGRe, as a canonical Tensor {up,down,down}.";
 RicciScalarFromMetricOGRe::usage = "Ricci scalar via OGRe (a scalar expression).";
 
 CovariantDFromMetric::usage =
-  "CovariantDFromMetric[t, g] computes the covariant derivative of CTensor t \
-with respect to the Levi-Civita connection of metric g. Returns a CTensor with \
+  "CovariantDFromMetric[t, g] computes the covariant derivative of Tensor t \
+with respect to the Levi-Civita connection of metric g. Returns a Tensor with \
 one extra \"down\" index prepended (the derivative index). Uses cached Christoffels.";
 
 GeodesicEquationsFromMetric::usage =
@@ -84,28 +84,28 @@ riemannDownArray[coords_, gdown_, rup_] := Module[{d = Length[coords]},
 
 ricciArray[rup_, d_] := Table[Sum[rup[[m, s, m, n]], {m, d}], {s, d}, {n, d}] // Simplify;
 
-ChristoffelFromMetric[g_?CTensorQ] := With[{coords = CTcoords[g]},
-  CTensor[coords, {"up", "down", "down"},
-   cachedChristoffel[coords, CTcomponents[g]], CTcomponents[g], CTconventions[g]]];
+ChristoffelFromMetric[g_?TensQ] := With[{coords = Coords[g]},
+  Tensor[coords, {"up", "down", "down"},
+   cachedChristoffel[coords, Components[g]], Components[g], Conventions[g]]];
 
-RiemannFromMetric[g_?CTensorQ] := Module[{coords = CTcoords[g], gdown = CTcomponents[g], gamma, rup},
+RiemannFromMetric[g_?TensQ] := Module[{coords = Coords[g], gdown = Components[g], gamma, rup},
   gamma = cachedChristoffel[coords, gdown];
   rup = riemannUpArray[coords, gamma];
-  CTensor[coords, {"down", "down", "down", "down"},
-   riemannDownArray[coords, gdown, rup], gdown, CTconventions[g]]];
+  Tensor[coords, {"down", "down", "down", "down"},
+   riemannDownArray[coords, gdown, rup], gdown, Conventions[g]]];
 
-RicciFromMetric[g_?CTensorQ] := Module[{coords = CTcoords[g], gdown = CTcomponents[g], gamma, rup},
+RicciFromMetric[g_?TensQ] := Module[{coords = Coords[g], gdown = Components[g], gamma, rup},
   gamma = cachedChristoffel[coords, gdown];
   rup = riemannUpArray[coords, gamma];
-  CTensor[coords, {"down", "down"}, ricciArray[rup, Length[coords]], gdown, CTconventions[g]]];
+  Tensor[coords, {"down", "down"}, ricciArray[rup, Length[coords]], gdown, Conventions[g]]];
 
-RicciScalarFromMetric[g_?CTensorQ] := Module[{gdown = CTcomponents[g], ric},
-  ric = CTcomponents[RicciFromMetric[g]];
+RicciScalarFromMetric[g_?TensQ] := Module[{gdown = Components[g], ric},
+  ric = Components[RicciFromMetric[g]];
   Simplify[Total[Inverse[gdown] ric, 2]]];
 
-KretschmannFromMetric[g_?CTensorQ] := Module[{gdown = CTcomponents[g], gup, rdown, rup, d = CTdim[g]},
+KretschmannFromMetric[g_?TensQ] := Module[{gdown = Components[g], gup, rdown, rup, d = Dim[g]},
   gup = Inverse[gdown];
-  rdown = CTcomponents[RiemannFromMetric[g]];
+  rdown = Components[RiemannFromMetric[g]];
   rup = Table[
     Sum[gup[[r, a]] gup[[s, b]] gup[[m, c]] gup[[n, e]] rdown[[a, b, c, e]],
      {a, d}, {b, d}, {c, d}, {e, d}], {r, d}, {s, d}, {m, d}, {n, d}];
@@ -114,57 +114,57 @@ KretschmannFromMetric[g_?CTensorQ] := Module[{gdown = CTcomponents[g], gup, rdow
 (* ------------------------- OGRe-backed implementations -------------------- *)
 
 (* OGRe`TNewCoordinates is HoldRest (it clears/protects the coordinate symbols),
-   so the symbol list must be injected literally via With -- passing CTcoords[g]
+   so the symbol list must be injected literally via With -- passing Coords[g]
    directly would hand it the unevaluated expression, not {t,x,y,z}. A unique ID
    per call is required so RepeatedTiming re-runs don't collide on OGRe's
    uniqueness constraint. *)
-ogreMetric[g_?CTensorQ] := With[{c = CTcoords[g], comps = CTcomponents[g]},
+ogreMetric[g_?TensQ] := With[{c = Coords[g], comps = Components[g]},
   Module[{id = ToString[Unique["MAm"]]},
    OGRe`TNewCoordinates[id <> "Coords", c];
    OGRe`TNewMetric[id, id <> "Coords", comps];
    id]];
 
-ToOGReMetric[g_?CTensorQ] := ogreMetric[g];
+ToOGReMetric[g_?TensQ] := ogreMetric[g];
 
-ChristoffelFromMetricOGRe[g_?CTensorQ] := Module[{id = ogreMetric[g], cid},
+ChristoffelFromMetricOGRe[g_?TensQ] := Module[{id = ogreMetric[g], cid},
   cid = OGRe`TCalcChristoffel[id];
-  CTensor[CTcoords[g], {"up", "down", "down"},
-   OGRe`TGetComponents[cid, {1, -1, -1}, id <> "Coords"], CTcomponents[g], CTconventions[g]]];
+  Tensor[Coords[g], {"up", "down", "down"},
+   OGRe`TGetComponents[cid, {1, -1, -1}, id <> "Coords"], Components[g], Conventions[g]]];
 
-RiemannFromMetricOGRe[g_?CTensorQ] := Module[{id = ogreMetric[g], rid},
+RiemannFromMetricOGRe[g_?TensQ] := Module[{id = ogreMetric[g], rid},
   rid = OGRe`TCalcRiemannTensor[id];
-  CTensor[CTcoords[g], {"down", "down", "down", "down"},
-   OGRe`TGetComponents[rid, {-1, -1, -1, -1}, id <> "Coords"], CTcomponents[g], CTconventions[g]]];
+  Tensor[Coords[g], {"down", "down", "down", "down"},
+   OGRe`TGetComponents[rid, {-1, -1, -1, -1}, id <> "Coords"], Components[g], Conventions[g]]];
 
-RicciFromMetricOGRe[g_?CTensorQ] := Module[{id = ogreMetric[g], rid},
+RicciFromMetricOGRe[g_?TensQ] := Module[{id = ogreMetric[g], rid},
   rid = OGRe`TCalcRicciTensor[id];
-  CTensor[CTcoords[g], {"down", "down"},
-   OGRe`TGetComponents[rid, {-1, -1}, id <> "Coords"], CTcomponents[g], CTconventions[g]]];
+  Tensor[Coords[g], {"down", "down"},
+   OGRe`TGetComponents[rid, {-1, -1}, id <> "Coords"], Components[g], Conventions[g]]];
 
-RicciScalarFromMetricOGRe[g_?CTensorQ] := Module[{id = ogreMetric[g], sid},
+RicciScalarFromMetricOGRe[g_?TensQ] := Module[{id = ogreMetric[g], sid},
   sid = OGRe`TCalcRicciScalar[id];
   First@Flatten@{OGRe`TGetComponents[sid, {}, id <> "Coords"]}];
 
 (* ----------------------- Cached Christoffel ------------------------------ *)
 
-(* Share MAuthor's cache so Christoffel is computed once, reused by
+(* Share CT's cache so Christoffel is computed once, reused by
    Riemann, Ricci, covariant derivative, and geodesic equations. *)
 cachedChristoffel[coords_, gdown_] := Module[
   {key = {"christoffel", Hash[{coords, gdown}]}, c},
-  c = CTCacheGet[key];
-  If[MissingQ[c], CTCacheStore[key, christoffelArray[coords, gdown]], c]];
+  c = CacheGet[key];
+  If[MissingQ[c], CacheStore[key, christoffelArray[coords, gdown]], c]];
 
 (* ----------------------- Covariant Derivative ---------------------------- *)
 
 (* Result indices: {"down"} (derivative) ++ original indices.
    For each upper index of t: +Gamma correction.
    For each lower index of t: -Gamma correction.
-   Uses Dot-based contraction (contractMatIndex from MAuthor) for speed. *)
+   Uses Dot-based contraction (contractMatIndex from CT) for speed. *)
 
-CovariantDFromMetric[t_?CTensorQ, g_?CTensorQ] := Module[
-  {coords = CTcoords[g], gdown = CTcomponents[g], gamma,
-   arr = CTcomponents[t], idx = CTindices[t],
-   d = CTdim[g], r = CTrank[t], pd, result},
+CovariantDFromMetric[t_?TensQ, g_?TensQ] := Module[
+  {coords = Coords[g], gdown = Components[g], gamma,
+   arr = Components[t], idx = Indices[t],
+   d = Dim[g], r = Rank[t], pd, result},
 
   gamma = cachedChristoffel[coords, gdown];
 
@@ -176,7 +176,7 @@ CovariantDFromMetric[t_?CTensorQ, g_?CTensorQ] := Module[
   Do[result += gammaCorrectionCD[arr, gamma, idx[[k]], k, r, d], {k, r}];
 
   result = Simplify[result];
-  CTensor[coords, Join[{"down"}, idx], result, gdown, CTconventions[g]]];
+  Tensor[coords, Join[{"down"}, idx], result, gdown, Conventions[g]]];
 
 (* Gamma correction for one index of the tensor.
    Returns an array of shape {d, <original shape>} where the first index
@@ -213,14 +213,14 @@ gammaCorrectionCD[arr_, gamma_, idxType_String, k_Integer, rank_Integer, d_Integ
 
 (* ----------------------- Geodesic Equations ------------------------------ *)
 
-GeodesicEquationsFromMetric[g_?CTensorQ] :=
+GeodesicEquationsFromMetric[g_?TensQ] :=
   GeodesicEquationsFromMetric[g, Global`\[Lambda]];
 
-GeodesicEquationsFromMetric[g_?CTensorQ, param_] := Module[
-  {coords = CTcoords[g], gamma, d = CTdim[g],
+GeodesicEquationsFromMetric[g_?TensQ, param_] := Module[
+  {coords = Coords[g], gamma, d = Dim[g],
    xfuncs, xdot, xddot, gammaOnCurve, eqs},
 
-  gamma = cachedChristoffel[coords, CTcomponents[g]];
+  gamma = cachedChristoffel[coords, Components[g]];
 
   (* Promote coordinate symbols to functions of the affine parameter *)
   xfuncs = Through[coords[param]];     (* {t[lam], x[lam], ...} *)
@@ -240,27 +240,27 @@ GeodesicEquationsFromMetric[g_?CTensorQ, param_] := Module[
 (* ----------------------- OGRe comparison functions ----------------------- *)
 
 (* Covariant derivative via OGRe *)
-CovariantDFromMetricOGRe[t_?CTensorQ, g_?CTensorQ] := Module[
-  {metID = ogreMetric[g], tID, covdID, ogreIdx, resultIdx, coords = CTcoords[g]},
-  (* Create OGRe tensor from CTensor t *)
-  tID = With[{c = CTcoords[t], comps = CTcomponents[t]},
+CovariantDFromMetricOGRe[t_?TensQ, g_?TensQ] := Module[
+  {metID = ogreMetric[g], tID, covdID, ogreIdx, resultIdx, coords = Coords[g]},
+  (* Create OGRe tensor from Tensor t *)
+  tID = With[{c = Coords[t], comps = Components[t]},
     Module[{id = ToString[Unique["MAcd"]]},
       OGRe`TNewTensor[id, metID <> "Coords",
-        Map[If[# === "up", 1, -1] &, CTindices[t]], comps];
+        Map[If[# === "up", 1, -1] &, Indices[t]], comps];
       id]];
   covdID = OGRe`TCalcCovariantDerivative[tID, metID];
   (* Result indices: derivative index (down=-1) prepended *)
-  ogreIdx = Join[{-1}, Map[If[# === "up", 1, -1] &, CTindices[t]]];
-  resultIdx = Join[{"down"}, CTindices[t]];
-  CTensor[coords, resultIdx,
+  ogreIdx = Join[{-1}, Map[If[# === "up", 1, -1] &, Indices[t]]];
+  resultIdx = Join[{"down"}, Indices[t]];
+  Tensor[coords, resultIdx,
     OGRe`TGetComponents[covdID, ogreIdx, metID <> "Coords"],
-    CTcomponents[g], CTconventions[g]]];
+    Components[g], Conventions[g]]];
 
 (* Geodesic equations via OGRe *)
-GeodesicEquationsFromMetricOGRe[g_?CTensorQ] :=
+GeodesicEquationsFromMetricOGRe[g_?TensQ] :=
   GeodesicEquationsFromMetricOGRe[g, Global`\[Lambda]];
 
-GeodesicEquationsFromMetricOGRe[g_?CTensorQ, param_] := Module[
+GeodesicEquationsFromMetricOGRe[g_?TensQ, param_] := Module[
   {metID = ogreMetric[g]},
   OGRe`TCalcGeodesicEquations[metID, param]];
 

@@ -16,7 +16,7 @@ of machine-checkable `assertions`. Three assertion kinds:
                 result equals `expect` (default "True"). For boolean invariants,
                 e.g. EquivalentQ[riem, maximally-symmetric-form].
   * "scalar" -- evaluate `wl` in the script's context to get a scalar literal,
-                then confirm `MAuthor`EquivalentQ[literal, expect]` is True in a
+                then confirm `CT`EquivalentQ[literal, expect]` is True in a
                 clean kernel. Wolfram-only (EquivalentQ does PossibleZeroQ ->
                 FullSimplify -> numeric spot-check). verify_bridge.py is still on
                 disk for opt-in cross-engine work, but the grader never calls it.
@@ -104,8 +104,8 @@ def _check_assertion(script: Path, a: dict, loads: list[str], timeout: float) ->
         # Then decide equality with EquivalentQ in a clean mauthor-only kernel.
         # Wolfram alone; no SymPy. EquivalentQ returns True / False / $Failed --
         # only an explicit True passes (undecided fails honestly).
-        chk = wolfram.run(f"MAuthor`EquivalentQ[({literal}),({expect})]",
-                          loads=["mauthor"], timeout=timeout)
+        chk = wolfram.run(f"CT`EquivalentQ[({literal}),({expect})]",
+                          loads=["ct"], timeout=timeout)
         passed = chk["status"] == "ok" and chk["result"] == "True"
         return {"desc": desc, "passed": passed,
                 "detail": f"value={literal} expect={expect} "

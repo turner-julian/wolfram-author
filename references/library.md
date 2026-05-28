@@ -19,15 +19,15 @@ curvature both ways, confirms built-in `EquivalentQ` OGRe (correctness), and
 tables/charts the RepeatedTiming speedup (≈7-11x on an explicit metric).
 Regenerate it with `wolframscript -file examples/ogre-vs-builtin-benchmark.wl`.
 
-## Canonical representation (`MAuthor.wl`)
+## Canonical representation (`CT.wl`)
 
 A tensor in a coordinate basis is fully specified by its components, index
-positions, the metric it lives with, and conventions. `CTensor` packages this as
+positions, the metric it lives with, and conventions. `Tensor` packages this as
 a self-contained Association (self-contained so it survives the stateless,
 one-shot kernel calls the harness makes):
 
 ```
-CTensor[coords, indices, components, metric, conventions]
+Tensor[coords, indices, components, metric, conventions]
   coords       e.g. {t, r, \[Theta], \[Phi]}
   indices      list of "up"/"down", length = rank
   components   array in the coordinate basis
@@ -35,8 +35,8 @@ CTensor[coords, indices, components, metric, conventions]
   conventions  <|"signature" -> ..., "riemann" -> ..., ...|>
 ```
 
-Accessors: `CTcoords CTcomponents CTindices CTmetric CTconventions CTdim CTrank`.
-Predicate: `CTensorQ`.
+Accessors: `Coords Components Indices Metric Conventions Dim Rank`.
+Predicate: `TensQ`.
 
 Per-package adapters (`canonical <-> OGRe`, `canonical <-> built-in`, and
 `canonical <-> xAct` on demand) are added in later milestones, each gated by the
@@ -57,24 +57,24 @@ faking certainty.
 
 ## Tensor algebra operations (added 2026-05-28)
 
-**MAuthor.wl** additions — general tensor algebra on the canonical CTensor:
-- `CTRaise[t, n]` / `CTLower[t, n]` — index raising/lowering. Dot-based:
+**CT.wl** additions — general tensor algebra on the canonical Tensor:
+- `Raise[t, n]` / `Lower[t, n]` — index raising/lowering. Dot-based:
   `Transpose` target index to position 1, `Dot` with `ginv`, `Transpose` back.
-  Inverse metric cached in `$MAuthorCache`.
-- `CTTrace[t, {i,j}]` — trace over one up + one down index. `TensorContract`.
-- `CTProduct[t1, t2]` — outer product (`Outer[Times, ...]`).
-- `CTContract[t1, i, t2, j]` — contract two tensors. `CTTrace[CTProduct[...]]`.
-- `CTTransform[t, newCoords, rules]` — coordinate transform. `rules` is the
+  Inverse metric cached in `$Cache`.
+- `Trace[t, {i,j}]` — trace over one up + one down index. `TensorContract`.
+- `Product[t1, t2]` — outer product (`Outer[Times, ...]`).
+- `Contract[t1, i, t2, j]` — contract two tensors. `Trace[Product[...]]`.
+- `Transform[t, newCoords, rules]` — coordinate transform. `rules` is the
   backward map. Computes backward Jacobian, substitutes, contracts each index.
 
-**GR.wl** additions — connection-dependent operations:
+**GRT.wl** additions — connection-dependent operations:
 - `CovariantDFromMetric[t, g]` — partial derivative + Gamma corrections (one
   per tensor index, each via Dot). Prepends one "down" derivative index.
 - `GeodesicEquationsFromMetric[g, param]` — geodesic ODEs as expressions == 0.
 
-**Cache** — `$MAuthorCache` (shared Association). Stores inverse metrics +
-Christoffel arrays. Keyed by `Hash`. `CTCacheClear[]` resets. Cross-package
-access via `CTCacheStore`/`CTCacheGet`.
+**Cache** — `$Cache` (shared Association). Stores inverse metrics +
+Christoffel arrays. Keyed by `Hash`. `CacheClear[]` resets. Cross-package
+access via `CacheStore`/`CacheGet`.
 
 **Testing notebook**: `examples/tensor-algebra-tests.nb` — exercises all
 operations on Schwarzschild + AdS4 with correctness checks and timing.
@@ -105,12 +105,12 @@ promotion:
 {
   "name": "RiemannFromMetric",
   "file": "GR/Curvature.wl",
-  "context": "MAuthor`",
-  "signature": "RiemannFromMetric[metric_?CTensorQ]",
+  "context": "CT`",
+  "signature": "RiemannFromMetric[metric_?TensQ]",
   "summary": "Riemann tensor R[down,down,down,down] from a canonical metric.",
   "representation": "input + output are canonical CTensors",
   "conventions": {"signature": "mostly-plus", "riemann": "MTW"},
-  "depends_on": ["MAuthor", "ChristoffelFromMetric"],
+  "depends_on": ["CT", "ChristoffelFromMetric"],
   "packages": ["ogre"],
   "benchmark": {
     "date": "2026-05-28",

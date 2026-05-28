@@ -48,7 +48,7 @@ payload, so assertions read the globals the script assigns (`ricciScalar`,
 | `type`   | fields            | passes when |
 |----------|-------------------|-------------|
 | `wl`     | `expr`, `expect` (default `"True"`) | `expr` evaluates clean and equals `expect` — use for boolean invariants, e.g. `EquivalentQ[riem, <max-symmetric form>]` |
-| `scalar` | `wl`, `expect`    | `wl`'s value equals `expect` by `MAuthor`EquivalentQ` in a clean kernel — **Wolfram only**, no second engine; scalars only |
+| `scalar` | `wl`, `expect`    | `wl`'s value equals `expect` by `CT`EquivalentQ` in a clean kernel — **Wolfram only**, no second engine; scalars only |
 | `head`   | `wl`, `expect`    | `Head[wl] == expect` — assert an honesty signal, e.g. a no-closed-form integral comes back with head `Integrate` |
 
 Every case also gets an automatic **"script runs clean"** check (status `ok`:
@@ -109,7 +109,7 @@ for triggering/description work, where there is no kernel oracle.
 ## Verification is Wolfram-only
 
 The grader and the skill workflow decide correctness in the Wolfram kernel and
-nowhere else. `MAuthor`EquivalentQ` returns True / False / `$Failed`; only an
+nowhere else. `CT`EquivalentQ` returns True / False / `$Failed`; only an
 explicit True passes, so an undecided check fails honestly rather than being
 rubber-stamped. SymPy is never consulted automatically. `scripts/verify_bridge.py`
 remains on disk for the occasions a user explicitly wants a second-engine

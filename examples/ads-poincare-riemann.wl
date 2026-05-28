@@ -32,33 +32,33 @@
 
 (* --- load the curated library (canonical representation + GR operators) --- *)
 libDir = FileNameJoin[{ParentDirectory[DirectoryName[$InputFileName]], "lib"}];
-Get[FileNameJoin[{libDir, "MAuthor.wl"}]];
-Get[FileNameJoin[{libDir, "GR.wl"}]];
+Get[FileNameJoin[{libDir, "CT.wl"}]];
+Get[FileNameJoin[{libDir, "GRT.wl"}]];
 
 (* --- 1. the metric ------------------------------------------------------- *)
 coords = {t, x, y, z};
 eta = DiagonalMatrix[{-1, 1, 1, 1}];
 gComponents = (L^2/z^2) eta;
-g = MAuthor`CTensor[coords, {"down", "down"}, gComponents, Automatic,
+g = CT`Tensor[coords, {"down", "down"}, gComponents, Automatic,
    <|"signature" -> "mostly-plus", "spacetime" -> "AdS4 Poincare"|>];
 
 Print["Metric g_{mu nu}:"];
 Print[MatrixForm[gComponents]];
 
 (* --- 2. curvature, composed from library primitives ---------------------- *)
-gamma = MAuthorGR`ChristoffelFromMetric[g];
-riem = MAuthorGR`RiemannFromMetric[g];           (* R_{rho sigma mu nu} *)
-ricci = MAuthorGR`RicciFromMetric[g];            (* R_{mu nu} *)
-ricciScalar = MAuthorGR`RicciScalarFromMetric[g];
-kretschmann = MAuthorGR`KretschmannFromMetric[g];
+gamma = GRT`ChristoffelFromMetric[g];
+riem = GRT`RiemannFromMetric[g];           (* R_{rho sigma mu nu} *)
+ricci = GRT`RicciFromMetric[g];            (* R_{mu nu} *)
+ricciScalar = GRT`RicciScalarFromMetric[g];
+kretschmann = GRT`KretschmannFromMetric[g];
 
 Print["\nNonzero Christoffel symbols Gamma^a_{bc}:"];
-Do[With[{val = MAuthor`CTcomponents[gamma][[a, b, c]]},
+Do[With[{val = CT`Components[gamma][[a, b, c]]},
    If[val =!= 0,
     Print["  Gamma^", coords[[a]], "_{", coords[[b]], coords[[c]], "} = ", val]]],
   {a, 4}, {b, 4}, {c, b, 4}];
 
-Print["\nRicci tensor R_{mu nu} = ", MatrixForm[MAuthor`CTcomponents[ricci]]];
+Print["\nRicci tensor R_{mu nu} = ", MatrixForm[CT`Components[ricci]]];
 Print["Ricci scalar R = ", ricciScalar];
 Print["Kretschmann K = ", kretschmann];
 
@@ -71,9 +71,9 @@ maxSymRiemann = Table[
 
 checks = <|
    "Riemann == maximally-symmetric form"
-     -> MAuthor`EquivalentQ[MAuthor`CTcomponents[riem], maxSymRiemann],
-   "Ricci scalar == -12/L^2" -> MAuthor`EquivalentQ[ricciScalar, -12/L^2],
-   "Kretschmann == 24/L^4" -> MAuthor`EquivalentQ[kretschmann, 24/L^4]
+     -> CT`EquivalentQ[CT`Components[riem], maxSymRiemann],
+   "Ricci scalar == -12/L^2" -> CT`EquivalentQ[ricciScalar, -12/L^2],
+   "Kretschmann == 24/L^4" -> CT`EquivalentQ[kretschmann, 24/L^4]
 |>;
 
 Print["\nSanity checks:"];

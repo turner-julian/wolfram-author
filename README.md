@@ -1,4 +1,4 @@
-# MAuthor
+# GRT
 
 A fast, component-level tensor algebra library for Wolfram Language / Mathematica, with a focus on general relativity. Built-in array implementations beat OGRe by 10-20x on explicit-coordinate metrics while maintaining full correctness verification via `EquivalentQ`.
 
@@ -33,48 +33,48 @@ Get["/path/to/mathematica-author/init.wl"];
 coords = {t, r, th, ph};
 f = 1 - 2 M/r;
 gdown = DiagonalMatrix[{-f, 1/f, r^2, r^2 Sin[th]^2}];
-g = MAuthor`CTensor[coords, {"down", "down"}, gdown, Automatic, <||>];
+g = CT`Tensor[coords, {"down", "down"}, gdown, Automatic, <||>];
 
 (* Compute curvature *)
-riem   = MAuthorGR`RiemannFromMetric[g];
-ricci  = MAuthorGR`RicciFromMetric[g];
-R      = MAuthorGR`RicciScalarFromMetric[g];
-K      = MAuthorGR`KretschmannFromMetric[g];
+riem   = GRT`RiemannFromMetric[g];
+ricci  = GRT`RicciFromMetric[g];
+R      = GRT`RicciScalarFromMetric[g];
+K      = GRT`KretschmannFromMetric[g];
 
 (* Index gymnastics *)
-riemUp = MAuthor`CTRaise[riem, 1, g];              (* raise first index *)
-ricciFromTrace = MAuthor`CTTrace[riemUp, {1, 3}];  (* trace -> Ricci *)
+riemUp = CT`Raise[riem, 1, g];              (* raise first index *)
+ricciFromTrace = CT`Trace[riemUp, {1, 3}];  (* trace -> Ricci *)
 
 (* Covariant derivative *)
-nablaR = MAuthorGR`CovariantDFromMetric[ricci, g];
+nablaR = GRT`CovariantDFromMetric[ricci, g];
 
 (* Geodesic equations *)
-geod = MAuthorGR`GeodesicEquationsFromMetric[g, \[Lambda]];
+geod = GRT`GeodesicEquationsFromMetric[g, \[Lambda]];
 ```
 
 ## API reference
 
-### Core representation (`MAuthor``)
+### Core representation (`CT``)
 
 | Function | Description |
 |---|---|
-| `CTensor[coords, indices, components, metric, conventions]` | Canonical tensor record (Association) |
-| `CTensorQ[t]` | Predicate |
-| `CTcoords`, `CTcomponents`, `CTindices`, `CTmetric`, `CTconventions`, `CTdim`, `CTrank` | Accessors |
+| `Tensor[coords, indices, components, metric, conventions]` | Canonical tensor record (Association) |
+| `TensQ[t]` | Predicate |
+| `Coords`, `Components`, `Indices`, `Metric`, `Conventions`, `Dim`, `Rank` | Accessors |
 | `EquivalentQ[a, b]` | `True` / `False` / `$Failed` (undecided). Symbolic + numeric. |
 
-### Index manipulation (`MAuthor``)
+### Index manipulation (`CT``)
 
 | Function | Description |
 |---|---|
-| `CTRaise[t, n]` or `CTRaise[t, n, g]` | Raise index `n` using the metric |
-| `CTLower[t, n]` or `CTLower[t, n, g]` | Lower index `n` |
-| `CTTrace[t, {i, j}]` | Contract indices `i` and `j` (one up, one down) |
-| `CTProduct[t1, t2]` | Tensor (outer) product |
-| `CTContract[t1, i, t2, j]` | Contract index `i` of `t1` with `j` of `t2` |
-| `CTTransform[t, newCoords, rules]` | Coordinate transformation (`rules` = backward map) |
+| `Raise[t, n]` or `Raise[t, n, g]` | Raise index `n` using the metric |
+| `Lower[t, n]` or `Lower[t, n, g]` | Lower index `n` |
+| `Trace[t, {i, j}]` | Contract indices `i` and `j` (one up, one down) |
+| `Product[t1, t2]` | Tensor (outer) product |
+| `Contract[t1, i, t2, j]` | Contract index `i` of `t1` with `j` of `t2` |
+| `Transform[t, newCoords, rules]` | Coordinate transformation (`rules` = backward map) |
 
-### GR operations (`MAuthorGR``)
+### GR operations (`GRT``)
 
 | Function | Description |
 |---|---|
@@ -90,7 +90,7 @@ geod = MAuthorGR`GeodesicEquationsFromMetric[g, \[Lambda]];
 
 | Function | Description |
 |---|---|
-| `CTCacheClear[]` | Clear cached inverse metrics and Christoffels |
+| `CacheClear[]` | Clear cached inverse metrics and Christoffels |
 
 ## Benchmarks (Schwarzschild, D=4)
 
@@ -108,7 +108,7 @@ All operations sub-millisecond. Built-in array implementations vs OGRe on explic
 
 Caching (cold -> warm pipeline): 3.4x speedup.
 
-OGRe wins on convenience for exploratory work (automatic index tracking, caching across operations). MAuthor wins on speed for explicit metrics and when you want auditable, documented code.
+OGRe wins on convenience for exploratory work (automatic index tracking, caching across operations). CT wins on speed for explicit metrics and when you want auditable, documented code.
 
 ## Project structure
 
@@ -116,8 +116,8 @@ OGRe wins on convenience for exploratory work (automatic index tracking, caching
 mathematica-author/
   init.wl                     # Load this to set up everything
   lib/
-    MAuthor.wl                # Canonical tensor rep + algebra operations
-    GR.wl                     # Curvature, covariant derivative, geodesics
+    CT.wl                # Canonical tensor rep + algebra operations
+    GRT.wl                     # Curvature, covariant derivative, geodesics
     index.json                # Registry of all functions with benchmarks
   scripts/
     wolfram.py                # Kernel harness (run WL, capture errors honestly)

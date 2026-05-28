@@ -66,16 +66,16 @@ The answer itself is a byproduct — always give the user the code that produced
    library entries — see Governance.
 5. **Assemble** the top-level script: documented header, composed from primitives,
    readable. **Load the library via `init.wl`** — begin the script with
-   `Get["/path/to/mathematica-author/init.wl"]` which sets `$MAuthorLibDir`
-   and loads both `MAuthor.wl` and `GR.wl`. Call functions with their **full
-   context prefixes** (`MAuthor`CTensor`, `MAuthorGR`RiemannFromMetric`). The
+   `Get["/path/to/mathematica-author/init.wl"]` which sets `$CTLibDir`
+   and loads both `CT.wl` and `GRT.wl`. Call functions with their **full
+   context prefixes** (`CT`Tensor`, `GRT`RiemannFromMetric`). The
    delivered file must run as-is with a bare `wolframscript -file script.wl`,
    no flags. `--load` is only for ad-hoc `run --code` one-liners; **never let
    a delivered script depend on `--load` or on `Needs` of an unloaded context**
    — that is exactly the AdS5 failure. See `references/wolfram-conventions.md`
    for detail.
 6. **Quality gate — Wolfram only.** Run the script with `wolfram.py` against the
-   local kernel and sanity-check in-kernel via `MAuthor`EquivalentQ`: dimensions,
+   local kernel and sanity-check in-kernel via `CT`EquivalentQ`: dimensions,
    limiting cases, symmetry, known special cases (e.g. AdS maximally symmetric:
    `R = -D(D-1)/L²`, Kretschmann `2D(D-1)/L⁴`). **There is no second engine.** If
    `wolfram.py` returns `no-kernel` (no `wolframscript` on PATH), `timeout`,
@@ -95,7 +95,7 @@ Run from this skill's directory.
 **Kernel harness** — `scripts/wolfram.py` (stdlib only; needs `wolframscript`):
 
 ```
-python3 scripts/wolfram.py run --code '<WL>' [--load gr|ogre|xact|mauthor] [--timeout N]
+python3 scripts/wolfram.py run --code '<WL>' [--load grt|ogre|xact|ct] [--timeout N]
 python3 scripts/wolfram.py run --file payload.wl
 python3 scripts/wolfram.py selftest
 ```
@@ -106,20 +106,20 @@ clean result; and a `head` equal to the operator you asked to evaluate
 (`Integrate`, `Solve`, `Sum`…) means it *did not close* — never report that as an
 answer. Full protocol: `references/wolfram-harness.md`.
 
-**Tensor algebra** — `lib/MAuthor.wl` index manipulation, contraction, and
+**Tensor algebra** — `lib/CT.wl` index manipulation, contraction, and
 coordinate transforms (all use Dot-based contraction for speed):
 
 ```
-CTRaise[t, n]                  (* raise index n; infers metric from t *)
-CTRaise[t, n, g]               (* raise using explicit metric g *)
-CTLower[t, n]                  (* lower index n *)
-CTTrace[t, {i, j}]             (* contract indices i,j (one up, one down) *)
-CTProduct[t1, t2]              (* tensor (outer) product *)
-CTContract[t1, i, t2, j]       (* contract index i of t1 with j of t2 *)
-CTTransform[t, newCoords, rules]  (* coord transform; rules = backward map *)
+Raise[t, n]                  (* raise index n; infers metric from t *)
+Raise[t, n, g]               (* raise using explicit metric g *)
+Lower[t, n]                  (* lower index n *)
+Trace[t, {i, j}]             (* contract indices i,j (one up, one down) *)
+Product[t1, t2]              (* tensor (outer) product *)
+Contract[t1, i, t2, j]       (* contract index i of t1 with j of t2 *)
+Transform[t, newCoords, rules]  (* coord transform; rules = backward map *)
 ```
 
-**GR operations** — `lib/GR.wl` covariant derivative and geodesics (use cached
+**GR operations** — `lib/GRT.wl` covariant derivative and geodesics (use cached
 Christoffels):
 
 ```
@@ -127,7 +127,7 @@ CovariantDFromMetric[t, g]     (* nabla of t w.r.t. metric g; prepends down inde
 GeodesicEquationsFromMetric[g] (* geodesic ODEs; coords -> functions of lambda *)
 ```
 
-**Cache** — `CTCacheClear[]` resets the shared cache (inverse metrics +
+**Cache** — `CacheClear[]` resets the shared cache (inverse metrics +
 Christoffels). Christoffel computation is shared across `ChristoffelFromMetric`,
 `RiemannFromMetric`, `CovariantDFromMetric`, and `GeodesicEquationsFromMetric`.
 
@@ -158,7 +158,7 @@ Two loops harden the skill (detail in `references/evals.md`):
 
 - **Code-gen quality** — `evals/run_codegen_eval.py` runs a generated script in
   a real kernel and confirms its values against convention-independent
-  assertions (curvature invariants, scalars via `MAuthor`EquivalentQ`), Wolfram
+  assertions (curvature invariants, scalars via `CT`EquivalentQ`), Wolfram
   only. Machine-graded, never an LLM judge — correctness here is mechanically
   decidable. `python3 evals/run_codegen_eval.py selftest`; cases in
   `evals/cases/*.json`. Add a case when you cover a new computation worth

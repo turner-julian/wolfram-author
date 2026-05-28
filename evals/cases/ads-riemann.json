@@ -8,7 +8,7 @@
     {
       "type": "wl",
       "desc": "Riemann equals the maximally-symmetric form -(1/L^2)(g_rm g_sn - g_rn g_sm)",
-      "expr": "MAuthor`EquivalentQ[MAuthor`CTcomponents[riem], Table[-(1/L^2) (gComponents[[r, m]] gComponents[[s, n]] - gComponents[[r, n]] gComponents[[s, m]]), {r, 4}, {s, 4}, {m, 4}, {n, 4}]]"
+      "expr": "CT`EquivalentQ[CT`Components[riem], Table[-(1/L^2) (gComponents[[r, m]] gComponents[[s, n]] - gComponents[[r, n]] gComponents[[s, m]]), {r, 4}, {s, 4}, {m, 4}, {n, 4}]]"
     },
     {
       "type": "scalar",

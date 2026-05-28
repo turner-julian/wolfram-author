@@ -5,7 +5,7 @@
    ============================================================================
 
    This is the corrected form of the script the "Riemann tensor AdS 5" Cowork
-   session produced. That one began with  Needs["MAuthorGR`"]  and was run with
+   session produced. That one began with  Needs["GRT`"]  and was run with
    `--load mauthor`, so the GR operators (which live in GR.wl, loaded only by
    `--load gr`) were never defined -- the run would fail even with a kernel.
 
@@ -30,14 +30,14 @@ Get[FileNameJoin[{ParentDirectory[ParentDirectory[
 coords = {t, x1, x2, x3, z};
 $Assumptions = L > 0 && z > 0;
 gComponents = (L^2/z^2) DiagonalMatrix[{-1, 1, 1, 1, 1}];
-g = MAuthor`CTensor[coords, {"down", "down"}, gComponents, Automatic,
+g = CT`Tensor[coords, {"down", "down"}, gComponents, Automatic,
    <|"signature" -> "mostly-plus", "spacetime" -> "AdS5 Poincare"|>];
 
 (* --- curvature, composed from library primitives (full context prefixes) -- *)
-riem = MAuthorGR`RiemannFromMetric[g];          (* R_{rho sigma mu nu}, all down *)
-ricci = MAuthorGR`RicciFromMetric[g];           (* R_{mu nu} *)
-ricciScalar = MAuthorGR`RicciScalarFromMetric[g];
-kretschmann = MAuthorGR`KretschmannFromMetric[g];
+riem = GRT`RiemannFromMetric[g];          (* R_{rho sigma mu nu}, all down *)
+ricci = GRT`RicciFromMetric[g];           (* R_{mu nu} *)
+ricciScalar = GRT`RicciScalarFromMetric[g];
+kretschmann = GRT`KretschmannFromMetric[g];
 
 Print["Ricci scalar R = ", ricciScalar, "   (expect -20/L^2)"];
 Print["Kretschmann  K = ", kretschmann, "   (expect 40/L^4)"];
@@ -50,11 +50,11 @@ maxSymRiemann = Table[
 
 checks = <|
    "Riemann == maximally-symmetric form"
-     -> MAuthor`EquivalentQ[MAuthor`CTcomponents[riem], maxSymRiemann],
+     -> CT`EquivalentQ[CT`Components[riem], maxSymRiemann],
    "Ricci == -(4/L^2) g"
-     -> MAuthor`EquivalentQ[MAuthor`CTcomponents[ricci], -(4/L^2) gComponents],
-   "Ricci scalar == -20/L^2" -> MAuthor`EquivalentQ[ricciScalar, -20/L^2],
-   "Kretschmann == 40/L^4" -> MAuthor`EquivalentQ[kretschmann, 40/L^4]
+     -> CT`EquivalentQ[CT`Components[ricci], -(4/L^2) gComponents],
+   "Ricci scalar == -20/L^2" -> CT`EquivalentQ[ricciScalar, -20/L^2],
+   "Kretschmann == 40/L^4" -> CT`EquivalentQ[kretschmann, 40/L^4]
 |>;
 
 Print["\nSanity checks:"];

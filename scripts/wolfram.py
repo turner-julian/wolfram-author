@@ -92,9 +92,9 @@ _LOADS = {
         ' TimeConstrained[Needs["xAct`xTensor`"], 120]]];'
     ),
     # the skill's own curated library (canonical representation + EquivalentQ)
-    "mauthor": f'Get["{LIB_DIR / "MAuthor.wl"}"];',
+    "ct": f'Get["{LIB_DIR / "CT.wl"}"];',
     # GR curvature operators; implies mauthor (loads it first).
-    "gr": f'Get["{LIB_DIR / "MAuthor.wl"}"];\nGet["{LIB_DIR / "GR.wl"}"];',
+    "grt": f'Get["{LIB_DIR / "CT.wl"}"];\nGet["{LIB_DIR / "GRT.wl"}"];',
 }
 
 # %%LOADS%% and %%PAYLOAD%% are substituted (not .format: WL is full of braces).

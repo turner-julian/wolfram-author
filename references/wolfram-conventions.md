@@ -23,9 +23,9 @@ Default physics conventions (unless the request overrides): natural units
 
 - **`TNewCoordinates` is `HoldRest`** (it clears/protects the coordinate symbols).
   You must inject the coordinate list literally, e.g.
-  `With[{c = CTcoords[g]}, OGRe`TNewCoordinates[id<>"Coords", c]; ...]`.
-  Passing `OGRe`TNewCoordinates[id, CTcoords[g]]` hands it the *unevaluated*
-  `CTcoords[g]` and OGRe aborts with `TMessage::ErrorDoesNotExist`.
+  `With[{c = Coords[g]}, OGRe`TNewCoordinates[id<>"Coords", c]; ...]`.
+  Passing `OGRe`TNewCoordinates[id, Coords[g]]` hands it the *unevaluated*
+  `Coords[g]` and OGRe aborts with `TMessage::ErrorDoesNotExist`.
 - **Unique object IDs per call.** OGRe enforces unique IDs; reusing an ID (e.g.
   under `RepeatedTiming`, which re-runs many times) errors. Generate
   `ToString[Unique["MAm"]]` per invocation (or `TSetAllowOverwrite[True]`).
@@ -48,9 +48,9 @@ at the repo root and call functions with **full context prefixes**:
 
 ```wolfram
 Get["/path/to/mathematica-author/init.wl"];
-(* This sets $MAuthorLibDir and loads MAuthor.wl + GR.wl *)
+(* This sets $CTLibDir and loads CT.wl + GR.wl *)
 
-riem = MAuthorGR`RiemannFromMetric[g];   (* full prefix, not bare Needs *)
+riem = GRT`RiemannFromMetric[g];   (* full prefix, not bare Needs *)
 ```
 
 For scripts that live inside the repo (examples, evals), use a relative path:
@@ -59,12 +59,12 @@ Get[FileNameJoin[{ParentDirectory[DirectoryName[$InputFileName]], "init.wl"}]];
 ```
 
 **What went wrong in the "Riemann tensor AdS 5" session** (the bug `init.wl`
-prevents): the script used `Needs["MAuthorGR`"]` and ran with `--load mauthor`.
-But the GR operators live in `GR.wl`, which only `--load gr` loads; `MAuthorGR``
+prevents): the script used `Needs["GRT`"]` and ran with `--load mauthor`.
+But the GR operators live in `GR.wl`, which only `--load gr` loads; `GRT``
 is not on `$Path`, so the operators were undefined. `init.wl` loads both packages
 unconditionally.
 
-- **Rule:** `--load mauthor|gr|ogre|xact` is only for ad-hoc `wolfram.py run
+- **Rule:** `--load ct|grt|ogre|xact` is only for ad-hoc `wolfram.py run
   --code '<one-liner>'`. A delivered file never depends on `--load` — it loads
   via `init.wl`.
 - Quality-gate the file exactly as the user will run it: `wolfram.py run --file

@@ -25,30 +25,30 @@
 
 (* --- load the curated library (canonical representation + GR operators) --- *)
 libDir = FileNameJoin[{ParentDirectory[ParentDirectory[DirectoryName[$InputFileName]]], "lib"}];
-Get[FileNameJoin[{libDir, "MAuthor.wl"}]];
-Get[FileNameJoin[{libDir, "GR.wl"}]];
+Get[FileNameJoin[{libDir, "CT.wl"}]];
+Get[FileNameJoin[{libDir, "GRT.wl"}]];
 
 (* --- 1. the metric ------------------------------------------------------- *)
 coords = {t, r, th, ph};
 f = 1 - 2 M/r;
 gComponents = DiagonalMatrix[{-f, 1/f, r^2, r^2 Sin[th]^2}];
-g = MAuthor`CTensor[coords, {"down", "down"}, gComponents, Automatic,
+g = CT`Tensor[coords, {"down", "down"}, gComponents, Automatic,
    <|"signature" -> "mostly-plus", "spacetime" -> "Schwarzschild"|>];
 
 Print["Metric g_{mu nu}:"];
 Print[MatrixForm[gComponents]];
 
 (* --- 2. curvature scalars, composed from library primitives -------------- *)
-ricciScalar = Simplify[MAuthorGR`RicciScalarFromMetric[g]];
-kretschmann = Simplify[MAuthorGR`KretschmannFromMetric[g]];
+ricciScalar = Simplify[GRT`RicciScalarFromMetric[g]];
+kretschmann = Simplify[GRT`KretschmannFromMetric[g]];
 
 Print["\nRicci scalar R = ", ricciScalar];
 Print["Kretschmann  K = ", kretschmann];
 
 (* --- 3. sanity checks ---------------------------------------------------- *)
 checks = <|
-   "Ricci scalar == 0 (vacuum)" -> MAuthor`EquivalentQ[ricciScalar, 0],
-   "Kretschmann == 48 M^2/r^6" -> MAuthor`EquivalentQ[kretschmann, 48 M^2/r^6]
+   "Ricci scalar == 0 (vacuum)" -> CT`EquivalentQ[ricciScalar, 0],
+   "Kretschmann == 48 M^2/r^6" -> CT`EquivalentQ[kretschmann, 48 M^2/r^6]
 |>;
 
 Print["\nSanity checks:"];

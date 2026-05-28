@@ -52,11 +52,11 @@ cells = {
 operators with full context prefixes, so the file runs as-is. OGRe is loaded the \
 same way (banner suppressed).", "Text"],
   inputCell[
-    Get[FileNameJoin[{$HomeDirectory, ".claude", "skills", "mathematica-author", "lib", "MAuthor.wl"}]];
-    Get[FileNameJoin[{$HomeDirectory, ".claude", "skills", "mathematica-author", "lib", "GR.wl"}]];
+    Get[FileNameJoin[{$HomeDirectory, ".claude", "skills", "mathematica-author", "lib", "CT.wl"}]];
+    Get[FileNameJoin[{$HomeDirectory, ".claude", "skills", "mathematica-author", "lib", "GRT.wl"}]];
     Get[FileNameJoin[{$HomeDirectory, "Documents", "Wolfram Mathematica", "OGRe.m"}]];
     OGRe`TSetAutoUpdates[False];
-    "loaded: MAuthor`, MAuthorGR`, OGRe`"
+    "loaded: CT`, GRT`, OGRe`"
   ],
 
   Cell["2.  The metric", "Section"],
@@ -66,7 +66,7 @@ ds^2 = (L^2/z^2)(-dt^2 + dx1^2 + dx2^2 + dx3^2 + dz^2).", "Text"],
     coords = {t, x1, x2, x3, z};
     $Assumptions = L > 0 && z > 0;
     gComp = (L^2/z^2) DiagonalMatrix[{-1, 1, 1, 1, 1}];
-    g = MAuthor`CTensor[coords, {"down", "down"}, gComp, Automatic, <|"signature" -> "mostly-plus"|>];
+    g = CT`Tensor[coords, {"down", "down"}, gComp, Automatic, <|"signature" -> "mostly-plus"|>];
     MatrixForm[gComp]
   ],
 
@@ -74,8 +74,8 @@ ds^2 = (L^2/z^2)(-dt^2 + dx1^2 + dx2^2 + dx3^2 + dz^2).", "Text"],
   Cell["Compose the registered built-in primitives. The Ricci scalar and the \
 Kretschmann scalar are convention-independent, so they are the robust checks.", "Text"],
   inputCell[
-    ricciScalar = MAuthorGR`RicciScalarFromMetric[g];
-    kretschmann = MAuthorGR`KretschmannFromMetric[g];
+    ricciScalar = GRT`RicciScalarFromMetric[g];
+    kretschmann = GRT`KretschmannFromMetric[g];
     Column[{
       Row[{"Ricci scalar  R = ", ricciScalar, "      (expected -20/L^2)"}],
       Row[{"Kretschmann   K = ", kretschmann, "      (expected 40/L^4)"}]}]
@@ -85,9 +85,9 @@ Kretschmann scalar are convention-independent, so they are the robust checks.", 
   Cell["Same Riemann tensor, computed two independent ways, compared componentwise \
 with the library's EquivalentQ.", "Text"],
   inputCell[
-    riemBuiltin = MAuthor`CTcomponents[MAuthorGR`RiemannFromMetric[g]];
-    riemOGRe = MAuthor`CTcomponents[MAuthorGR`RiemannFromMetricOGRe[g]];
-    MAuthor`EquivalentQ[riemBuiltin, riemOGRe]
+    riemBuiltin = CT`Components[GRT`RiemannFromMetric[g]];
+    riemOGRe = CT`Components[GRT`RiemannFromMetricOGRe[g]];
+    CT`EquivalentQ[riemBuiltin, riemOGRe]
   ],
 
   Cell["5.  Speed: built-in vs OGRe", "Section"],
@@ -95,10 +95,10 @@ with the library's EquivalentQ.", "Text"],
 implementations. Christoffel, Riemann, Ricci, and the Ricci scalar.", "Text"],
   inputCell[
     ops = {"Christoffel", "Riemann", "Ricci", "RicciScalar"};
-    builtinFns = {MAuthorGR`ChristoffelFromMetric, MAuthorGR`RiemannFromMetric,
-                  MAuthorGR`RicciFromMetric, MAuthorGR`RicciScalarFromMetric};
-    ogreFns = {MAuthorGR`ChristoffelFromMetricOGRe, MAuthorGR`RiemannFromMetricOGRe,
-               MAuthorGR`RicciFromMetricOGRe, MAuthorGR`RicciScalarFromMetricOGRe};
+    builtinFns = {GRT`ChristoffelFromMetric, GRT`RiemannFromMetric,
+                  GRT`RicciFromMetric, GRT`RicciScalarFromMetric};
+    ogreFns = {GRT`ChristoffelFromMetricOGRe, GRT`RiemannFromMetricOGRe,
+               GRT`RicciFromMetricOGRe, GRT`RicciScalarFromMetricOGRe};
     tBuiltin = First@RepeatedTiming[#[g]] & /@ builtinFns;
     tOGRe = First@RepeatedTiming[#[g]] & /@ ogreFns;
     Grid[

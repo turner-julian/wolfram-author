@@ -1,6 +1,6 @@
 (* ::Package:: *)
 
-(* MAuthor` -- core substrate for the mathematica-author skill library.
+(* CT` -- core substrate for the mathematica-author skill library.
 
    Defines the canonical component-level tensor representation (the interop
    layer that lets OGRe / xAct / built-in computations compose) and the
@@ -11,52 +11,52 @@
    index positions, the metric it lives with, and conventions. This is NOT an
    abstract-index algebra -- that overreach is explicitly out of scope. *)
 
-BeginPackage["MAuthor`"];
+BeginPackage["CT`"];
 
-CTensor::usage =
-  "CTensor[coords, indices, components, metric, conventions] builds a canonical \
+Tensor::usage =
+  "Tensor[coords, indices, components, metric, conventions] builds a canonical \
 tensor record (an Association). indices is a list of \"up\"/\"down\" of length \
 rank; components is the array in the coordinate basis; metric is the all-down \
 metric components in the same coords; conventions is an Association.";
-CTensorQ::usage = "CTensorQ[t] tests whether t is a well-formed canonical tensor.";
-CTcoords::usage = "CTcoords[t] gives the coordinate symbols.";
-CTcomponents::usage = "CTcomponents[t] gives the component array.";
-CTindices::usage = "CTindices[t] gives the list of index positions.";
-CTmetric::usage = "CTmetric[t] gives the all-down metric components.";
-CTconventions::usage = "CTconventions[t] gives the conventions Association.";
-CTdim::usage = "CTdim[t] gives the spacetime dimension (Length of coords).";
-CTrank::usage = "CTrank[t] gives the tensor rank (Length of indices).";
+TensQ::usage = "TensQ[t] tests whether t is a well-formed canonical tensor.";
+Coords::usage = "Coords[t] gives the coordinate symbols.";
+Components::usage = "Components[t] gives the component array.";
+Indices::usage = "Indices[t] gives the list of index positions.";
+Metric::usage = "Metric[t] gives the all-down metric components.";
+Conventions::usage = "Conventions[t] gives the conventions Association.";
+Dim::usage = "Dim[t] gives the spacetime dimension (Length of coords).";
+Rank::usage = "Rank[t] gives the tensor rank (Length of indices).";
 
 (* --- Index manipulation --- *)
-CTRaise::usage =
-  "CTRaise[t, n] or CTRaise[t, n, g] raises index n of CTensor t using the metric \
+Raise::usage =
+  "Raise[t, n] or Raise[t, n, g] raises index n of Tensor t using the metric \
 (from t's metric field, or the explicit metric g). Index n must be \"down\".";
-CTLower::usage =
-  "CTLower[t, n] or CTLower[t, n, g] lowers index n. Index n must be \"up\".";
+Lower::usage =
+  "Lower[t, n] or Lower[t, n, g] lowers index n. Index n must be \"up\".";
 
 (* --- Contraction / products --- *)
-CTTrace::usage =
-  "CTTrace[t, {i, j}] contracts (traces) indices i and j of CTensor t. One must be \
-\"up\" and the other \"down\". Returns a CTensor of rank r-2, or a scalar if r=2.";
-CTProduct::usage =
-  "CTProduct[t1, t2] tensor (outer) product. Result has rank r1+r2.";
-CTContract::usage =
-  "CTContract[t1, i, t2, j] contracts index i of t1 with index j of t2 (one up, \
-one down). Equivalent to CTTrace[CTProduct[...], ...] but stated directly.";
+Trc::usage =
+  "Trc[t, {i, j}] contracts (traces) indices i and j of Tensor t. One must be \
+\"up\" and the other \"down\". Returns a Tensor of rank r-2, or a scalar if r=2.";
+Prod::usage =
+  "Prod[t1, t2] tensor (outer) product. Result has rank r1+r2.";
+Contract::usage =
+  "Contract[t1, i, t2, j] contracts index i of t1 with index j of t2 (one up, \
+one down). Equivalent to Trc[Prod[...], ...] but stated directly.";
 
 (* --- Coordinate transformation --- *)
-CTTransform::usage =
-  "CTTransform[t, newCoords, rules] transforms CTensor t to new coordinates. \
+Transform::usage =
+  "Transform[t, newCoords, rules] transforms Tensor t to new coordinates. \
 rules = {old1 -> f1[newCoords], old2 -> f2[newCoords], ...} is the backward map \
 (old coords as functions of new). Transforms components and the stored metric.";
 
 (* --- Cache (shared with MAuthorGR) --- *)
-$MAuthorCache::usage = "Internal computation cache. Use CTCacheClear[] to reset.";
-CTCacheClear::usage = "CTCacheClear[] clears the computation cache (inverse metrics, Christoffels, etc.).";
-CTCacheStore::usage = "CTCacheStore[key, val] stores in the shared cache (internal API for MAuthorGR).";
-CTCacheGet::usage = "CTCacheGet[key] retrieves from cache; Missing[] if absent (internal API).";
+$Cache::usage = "Internal computation cache. Use CacheClear[] to reset.";
+CacheClear::usage = "CacheClear[] clears the computation cache (inverse metrics, Christoffels, etc.).";
+CacheStore::usage = "CacheStore[key, val] stores in the shared cache (internal API for MAuthorGR).";
+CacheGet::usage = "CacheGet[key] retrieves from cache; Missing[] if absent (internal API).";
 
-If[!AssociationQ[$MAuthorCache], $MAuthorCache = <||>];
+If[!AssociationQ[$Cache], $Cache = <||>];
 
 EquivalentQ::usage =
   "EquivalentQ[a, b] returns True if a and b are equal, False if they provably \
@@ -67,21 +67,21 @@ positions, components elementwise.";
 
 Begin["`Private`"];
 
-CTensor[coords_List, indices_List, components_, metric_: Automatic,
+Tensor[coords_List, indices_List, components_, metric_: Automatic,
    conventions_Association: <||>] :=
-  <|"type" -> "CTensor", "coords" -> coords, "indices" -> indices,
+  <|"type" -> "Tensor", "coords" -> coords, "indices" -> indices,
     "components" -> components, "metric" -> metric, "conventions" -> conventions|>;
 
-CTensorQ[t_] := AssociationQ[t] && Lookup[t, "type", None] === "CTensor" &&
+TensQ[t_] := AssociationQ[t] && Lookup[t, "type", None] === "Tensor" &&
    ListQ[t["coords"]] && ListQ[t["indices"]];
 
-CTcoords[t_] := t["coords"];
-CTcomponents[t_] := t["components"];
-CTindices[t_] := t["indices"];
-CTmetric[t_] := t["metric"];
-CTconventions[t_] := t["conventions"];
-CTdim[t_] := Length[t["coords"]];
-CTrank[t_] := Length[t["indices"]];
+Coords[t_] := t["coords"];
+Components[t_] := t["components"];
+Indices[t_] := t["indices"];
+Metric[t_] := t["metric"];
+Conventions[t_] := t["conventions"];
+Dim[t_] := Length[t["coords"]];
+Rank[t_] := Length[t["indices"]];
 
 (* free (user, non-System`) symbols anywhere in an expression *)
 freeVars[expr_] := DeleteDuplicates@
@@ -119,12 +119,12 @@ arrayEquivalentQ[a_, b_] := Module[{fa, fb, pairs},
     MemberQ[pairs, $Failed], $Failed,
     True, True]];
 
-EquivalentQ[a_?CTensorQ, b_?CTensorQ] :=
+EquivalentQ[a_?TensQ, b_?TensQ] :=
    If[a["coords"] =!= b["coords"] || a["indices"] =!= b["indices"],
     False,
     arrayEquivalentQ[a["components"], b["components"]]];
-EquivalentQ[a_?CTensorQ, _] := False;
-EquivalentQ[_, b_?CTensorQ] := False;
+EquivalentQ[a_?TensQ, _] := False;
+EquivalentQ[_, b_?TensQ] := False;
 EquivalentQ[a_List, b_List] := arrayEquivalentQ[a, b];
 EquivalentQ[a_List, _] := False;
 EquivalentQ[_, b_List] := False;
@@ -132,13 +132,13 @@ EquivalentQ[a_, b_] := scalarEquivalentQ[a, b];
 
 (* ====================== Cache ============================================= *)
 
-CTCacheClear[] := ($MAuthorCache = <||>);
-CTCacheStore[key_, val_] := ($MAuthorCache[key] = val);
-CTCacheGet[key_] := $MAuthorCache[key];
+CacheClear[] := ($Cache = <||>);
+CacheStore[key_, val_] := ($Cache[key] = val);
+CacheGet[key_] := $Cache[key];
 
 cachedInverse[m_] := Module[{key = {"inv", Hash[m]}, c},
-  c = $MAuthorCache[key];
-  If[MissingQ[c], $MAuthorCache[key] = Inverse[m], c]];
+  c = $Cache[key];
+  If[MissingQ[c], $Cache[key] = Inverse[m], c]];
 
 (* ====================== Core helper ======================================= *)
 
@@ -155,77 +155,77 @@ contractMatIndex[mat_, arr_, k_, rank_] :=
 
 (* ====================== Index raising / lowering ========================== *)
 
-CTRaise::nomet = "No metric available; pass it explicitly: CTRaise[t, n, g].";
-CTRaise::notdown = "Index `1` is already \"up\"; cannot raise.";
-CTLower::nomet = "No metric available; pass it explicitly: CTLower[t, n, g].";
-CTLower::notup = "Index `1` is already \"down\"; cannot lower.";
+Raise::nomet = "No metric available; pass it explicitly: Raise[t, n, g].";
+Raise::notdown = "Index `1` is already \"up\"; cannot raise.";
+Lower::nomet = "No metric available; pass it explicitly: Lower[t, n, g].";
+Lower::notup = "Index `1` is already \"down\"; cannot lower.";
 
-(* Extract the all-down metric matrix from a CTensor.
+(* Extract the all-down metric matrix from a Tensor.
    For metric tensors themselves (indices {"down","down"}, metric Automatic),
    the components ARE the metric. *)
-getMetricDown[t_?CTensorQ] := Module[{m = CTmetric[t]},
+getMetricDown[t_?TensQ] := Module[{m = Metric[t]},
   If[m =!= Automatic, m,
-    If[CTindices[t] === {"down", "down"}, CTcomponents[t], Automatic]]];
+    If[Indices[t] === {"down", "down"}, Components[t], Automatic]]];
 
 (* Primary entry: explicit metric matrix *)
-CTRaise[t_?CTensorQ, n_Integer, gdown_?MatrixQ] := Module[
-  {idx = CTindices[t], r = CTrank[t], ginv, arr},
-  If[idx[[n]] =!= "down", Message[CTRaise::notdown, n]; Return[$Failed]];
+Raise[t_?TensQ, n_Integer, gdown_?MatrixQ] := Module[
+  {idx = Indices[t], r = Rank[t], ginv, arr},
+  If[idx[[n]] =!= "down", Message[Raise::notdown, n]; Return[$Failed]];
   ginv = cachedInverse[gdown];
-  arr = Simplify[contractMatIndex[ginv, CTcomponents[t], n, r]];
-  CTensor[CTcoords[t], ReplacePart[idx, n -> "up"], arr, gdown, CTconventions[t]]];
+  arr = Simplify[contractMatIndex[ginv, Components[t], n, r]];
+  Tensor[Coords[t], ReplacePart[idx, n -> "up"], arr, gdown, Conventions[t]]];
 
-(* Metric passed as CTensor *)
-CTRaise[t_?CTensorQ, n_Integer, g_?CTensorQ] :=
-  CTRaise[t, n, getMetricDown[g]];
+(* Metric passed as Tensor *)
+Raise[t_?TensQ, n_Integer, g_?TensQ] :=
+  Raise[t, n, getMetricDown[g]];
 
 (* Infer metric from tensor *)
-CTRaise[t_?CTensorQ, n_Integer] := Module[{gd = getMetricDown[t]},
-  If[gd === Automatic, (Message[CTRaise::nomet]; $Failed), CTRaise[t, n, gd]]];
+Raise[t_?TensQ, n_Integer] := Module[{gd = getMetricDown[t]},
+  If[gd === Automatic, (Message[Raise::nomet]; $Failed), Raise[t, n, gd]]];
 
-CTLower[t_?CTensorQ, n_Integer, gdown_?MatrixQ] := Module[
-  {idx = CTindices[t], r = CTrank[t], arr},
-  If[idx[[n]] =!= "up", Message[CTLower::notup, n]; Return[$Failed]];
-  arr = Simplify[contractMatIndex[gdown, CTcomponents[t], n, r]];
-  CTensor[CTcoords[t], ReplacePart[idx, n -> "down"], arr, gdown, CTconventions[t]]];
+Lower[t_?TensQ, n_Integer, gdown_?MatrixQ] := Module[
+  {idx = Indices[t], r = Rank[t], arr},
+  If[idx[[n]] =!= "up", Message[Lower::notup, n]; Return[$Failed]];
+  arr = Simplify[contractMatIndex[gdown, Components[t], n, r]];
+  Tensor[Coords[t], ReplacePart[idx, n -> "down"], arr, gdown, Conventions[t]]];
 
-CTLower[t_?CTensorQ, n_Integer, g_?CTensorQ] :=
-  CTLower[t, n, getMetricDown[g]];
+Lower[t_?TensQ, n_Integer, g_?TensQ] :=
+  Lower[t, n, getMetricDown[g]];
 
-CTLower[t_?CTensorQ, n_Integer] := Module[{gd = getMetricDown[t]},
-  If[gd === Automatic, (Message[CTLower::nomet]; $Failed), CTLower[t, n, gd]]];
+Lower[t_?TensQ, n_Integer] := Module[{gd = getMetricDown[t]},
+  If[gd === Automatic, (Message[Lower::nomet]; $Failed), Lower[t, n, gd]]];
 
 (* ====================== Trace / contraction =============================== *)
 
-CTTrace::badpair = "Need one \"up\" and one \"down\"; got \"`1`\" and \"`2`\".";
+Trace::badpair = "Need one \"up\" and one \"down\"; got \"`1`\" and \"`2`\".";
 
-CTTrace[t_?CTensorQ, {i_Integer, j_Integer}] := Module[
-  {idx = CTindices[t], contracted, newIdx},
+Trc[t_?TensQ, {i_Integer, j_Integer}] := Module[
+  {idx = Indices[t], contracted, newIdx},
   If[Sort[{idx[[i]], idx[[j]]}] =!= {"down", "up"},
-    Message[CTTrace::badpair, idx[[i]], idx[[j]]]; Return[$Failed]];
-  contracted = Simplify[TensorContract[CTcomponents[t], {{i, j}}]];
+    Message[Trace::badpair, idx[[i]], idx[[j]]]; Return[$Failed]];
+  contracted = Simplify[TensorContract[Components[t], {{i, j}}]];
   newIdx = Delete[idx, {{i}, {j}}];
   If[newIdx === {},
     contracted,
-    CTensor[CTcoords[t], newIdx, contracted, CTmetric[t], CTconventions[t]]]];
+    Tensor[Coords[t], newIdx, contracted, Metric[t], Conventions[t]]]];
 
 (* ====================== Tensor product ==================================== *)
 
-CTProduct[t1_?CTensorQ, t2_?CTensorQ] :=
-  CTensor[CTcoords[t1],
-    Join[CTindices[t1], CTindices[t2]],
-    Outer[Times, CTcomponents[t1], CTcomponents[t2]],
-    CTmetric[t1], CTconventions[t1]];
+Prod[t1_?TensQ, t2_?TensQ] :=
+  Tensor[Coords[t1],
+    Join[Indices[t1], Indices[t2]],
+    Outer[Times, Components[t1], Components[t2]],
+    Metric[t1], Conventions[t1]];
 
 (* ====================== Contract (product + trace) ======================== *)
 
-CTContract[t1_?CTensorQ, i_Integer, t2_?CTensorQ, j_Integer] :=
-  CTTrace[CTProduct[t1, t2], {i, CTrank[t1] + j}];
+Contract[t1_?TensQ, i_Integer, t2_?TensQ, j_Integer] :=
+  Trc[Prod[t1, t2], {i, Rank[t1] + j}];
 
 (* ====================== Coordinate transformation ======================== *)
 
-CTTransform[t_?CTensorQ, newCoords_List, rules_List] := Module[
-  {oldCoords = CTcoords[t], idx = CTindices[t], d = CTdim[t], r = CTrank[t],
+Transform[t_?TensQ, newCoords_List, rules_List] := Module[
+  {oldCoords = Coords[t], idx = Indices[t], d = Dim[t], r = Rank[t],
    oldExprs, backJac, fwdJac, arr, gdown},
 
   (* Backward map: old coordinates as functions of new *)
@@ -239,7 +239,7 @@ CTTransform[t_?CTensorQ, newCoords_List, rules_List] := Module[
   fwdJac = Simplify[Inverse[backJac]];
 
   (* Substitute old -> new in components *)
-  arr = CTcomponents[t] /. rules;
+  arr = Components[t] /. rules;
 
   (* Transform each index:
        down  -> contract with Transpose[backJac] (= M^T)
@@ -250,11 +250,11 @@ CTTransform[t_?CTensorQ, newCoords_List, rules_List] := Module[
   arr = Simplify[arr];
 
   (* Transform the stored metric (always all-down rank-2) *)
-  gdown = CTmetric[t];
+  gdown = Metric[t];
   If[gdown =!= Automatic,
     gdown = Simplify[Transpose[backJac] . (gdown /. rules) . backJac]];
 
-  CTensor[newCoords, idx, arr, gdown, CTconventions[t]]];
+  Tensor[newCoords, idx, arr, gdown, Conventions[t]]];
 
 End[];
 EndPackage[];

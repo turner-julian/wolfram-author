@@ -56,7 +56,7 @@ Cell[BoxData[
      RowBox[{
      "$HomeDirectory", ",", "\"\<.claude\>\"", ",", "\"\<skills\>\"", ",", 
       "\"\<mathematica-author\>\"", ",", "\"\<lib\>\"", ",", 
-      "\"\<MAuthor.wl\>\""}], "}"}], "]"}], "]"}], ";", 
+      "\"\<CT.wl\>\""}], "}"}], "]"}], "]"}], ";", 
   RowBox[{"Get", "[", 
    RowBox[{"FileNameJoin", "[", 
     RowBox[{"{", 
@@ -72,11 +72,11 @@ Cell[BoxData[
       "\"\<Wolfram Mathematica\>\"", ",", "\"\<OGRe.m\>\""}], "}"}], "]"}], 
    "]"}], ";", 
   RowBox[{"OGRe`TSetAutoUpdates", "[", "False", "]"}], ";", 
-  "\"\<loaded: MAuthor`, MAuthorGR`, OGRe`\>\""}]], "Input",
+  "\"\<loaded: CT`, GRT`, OGRe`\>\""}]], "Input",
  CellLabel->" In[1]:=",ExpressionUUID->"147e7dfc-e77c-4ff0-aa4d-ba07482afe43"],
 
 Cell[OutputFormData["\<\
-loaded: MAuthor`, MAuthorGR`, OGRe`\
+loaded: CT`, GRT`, OGRe`\
 \>"], "Output",
  CellChangeTimes->{3.988986836967911*^9},
  CellLabel->" Out[1]=",ExpressionUUID->"7654c064-2af5-4a12-81a0-b514c6456df0"]
@@ -114,7 +114,7 @@ Cell[BoxData[
       "]"}]}], 
     SuperscriptBox["z", "2"]]}], ";", 
   RowBox[{"g", "=", 
-   RowBox[{"MAuthor`CTensor", "[", 
+   RowBox[{"CT`Tensor", "[", 
     RowBox[{"coords", ",", 
      RowBox[{"{", 
       RowBox[{"\"\<down\>\"", ",", "\"\<down\>\""}], "}"}], ",", "gComp", ",",
@@ -160,9 +160,9 @@ Cell[CellGroupData[{
 Cell[BoxData[
  RowBox[{
   RowBox[{"ricciScalar", "=", 
-   RowBox[{"MAuthorGR`RicciScalarFromMetric", "[", "g", "]"}]}], ";", 
+   RowBox[{"GRT`RicciScalarFromMetric", "[", "g", "]"}]}], ";", 
   RowBox[{"kretschmann", "=", 
-   RowBox[{"MAuthorGR`KretschmannFromMetric", "[", "g", "]"}]}], ";", 
+   RowBox[{"GRT`KretschmannFromMetric", "[", "g", "]"}]}], ";", 
   TagBox[GridBox[{
      {
       TemplateBox[{
@@ -212,13 +212,13 @@ Cell[CellGroupData[{
 Cell[BoxData[
  RowBox[{
   RowBox[{"riemBuiltin", "=", 
-   RowBox[{"MAuthor`CTcomponents", "[", 
-    RowBox[{"MAuthorGR`RiemannFromMetric", "[", "g", "]"}], "]"}]}], ";", 
+   RowBox[{"CT`Components", "[", 
+    RowBox[{"GRT`RiemannFromMetric", "[", "g", "]"}], "]"}]}], ";", 
   RowBox[{"riemOGRe", "=", 
-   RowBox[{"MAuthor`CTcomponents", "[", 
-    RowBox[{"MAuthorGR`RiemannFromMetricOGRe", "[", "g", "]"}], "]"}]}], ";", 
+   RowBox[{"CT`Components", "[", 
+    RowBox[{"GRT`RiemannFromMetricOGRe", "[", "g", "]"}], "]"}]}], ";", 
   
-  RowBox[{"MAuthor`EquivalentQ", "[", 
+  RowBox[{"CT`EquivalentQ", "[", 
    RowBox[{"riemBuiltin", ",", "riemOGRe"}], "]"}]}]], "Input",
  CellLabel->" In[4]:=",ExpressionUUID->"f68a4a4b-9fbc-4d2e-b402-c59946d40592"],
 
@@ -251,15 +251,15 @@ Cell[BoxData[
   RowBox[{"builtinFns", "=", 
    RowBox[{"{", 
     RowBox[{
-    "MAuthorGR`ChristoffelFromMetric", ",", "MAuthorGR`RiemannFromMetric", 
-     ",", "MAuthorGR`RicciFromMetric", ",", 
-     "MAuthorGR`RicciScalarFromMetric"}], "}"}]}], ";", 
+    "GRT`ChristoffelFromMetric", ",", "GRT`RiemannFromMetric", 
+     ",", "GRT`RicciFromMetric", ",", 
+     "GRT`RicciScalarFromMetric"}], "}"}]}], ";", 
   RowBox[{"ogreFns", "=", 
    RowBox[{"{", 
     RowBox[{
-    "MAuthorGR`ChristoffelFromMetricOGRe", ",", 
-     "MAuthorGR`RiemannFromMetricOGRe", ",", "MAuthorGR`RicciFromMetricOGRe", 
-     ",", "MAuthorGR`RicciScalarFromMetricOGRe"}], "}"}]}], ";", 
+    "GRT`ChristoffelFromMetricOGRe", ",", 
+     "GRT`RiemannFromMetricOGRe", ",", "GRT`RicciFromMetricOGRe", 
+     ",", "GRT`RicciScalarFromMetricOGRe"}], "}"}]}], ";", 
   RowBox[{"tBuiltin", "=", 
    RowBox[{
     RowBox[{"(", 
