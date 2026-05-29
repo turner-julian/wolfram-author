@@ -182,14 +182,44 @@ Print[\"agree:    \", geodAgree]", "Input"],
 (* ===================================================================== *)
 Cell["Summary", "Section"],
 
-Cell["Key results on Schwarzschild D=4:\n\n\
-- GRT wins big on Ricci (direct path, ~2.6x), Ricci Scalar (~2.8x), \
-and Coordinate Transform (~30x).\n\
-- Riemann is slightly slower because GRT returns all-down R_{abcd} \
-(one extra lowering step); GREATER2 returns mixed R^a_{bcd}.\n\
+Cell["Key results on Schwarzschild D=4 (after PreRiemann + pair-symmetry \
+optimizations):\n\n\
+- GRT wins on Ricci (direct path, ~2.7x), Ricci Scalar (~2.8x), \
+Coordinate Transform (~28x).\n\
+- Riemann is now at parity with GREATER2 (~0.95x). Previously ~0.6x before \
+PreRiemann antisymmetrization.\n\
+- Kretschmann is GRT-only (GREATER2 has no built-in). 2-raise pair-symmetry \
+trick gives ~1.6x speedup over the previous 4-raise implementation.\n\
 - Raise, Trace, CovD, Geodesic are within measurement noise.\n\
-- Kretschmann is GRT-only (GREATER2 has no built-in).\n\
-- All operations agree on correctness.", "Text"]
+- All operations agree on correctness.\n\n\
+Cold absolute timings (median of 5, Schwarzschild D=4):\n\
+  Christoffel:  0.45 ms\n\
+  Riemann:      2.0 ms  (was 2.8 ms before PreRiemann)\n\
+  Ricci:        1.1 ms\n\
+  RicciScalar:  1.1 ms\n\
+  Kretschmann:  3.0 ms  (was 4.8 ms before pair-symmetry trick)\n\n\
+Optimizations that were tried and REJECTED:\n\n\
+1. Cancel[Together[...]] as fast normalizer for intermediates. Hypothesis: \
+full Simplify on intermediates is wasteful when the result feeds more \
+computation. Reality: for GR curvature chains, fully simplified intermediates \
+make downstream Dot products produce simpler expressions, REDUCING the cost \
+of downstream Simplify. Cancel+Together left expressions un-normalized \
+enough that downstream complexity compounded. Christoffel regressed 2.6x, \
+Kretschmann 2x, CoordTransform 4x.\n\n\
+2. Eliminating 'double-simplification' on christoffelArray (Simplify on \
+preChris then Simplify on ginv.preChris). The first Simplify IS paying for \
+itself: clean derivatives make the Dot with ginv produce clean products, \
+making the second Simplify trivial. Removing the first Simplify makes the \
+second one work much harder.\n\n\
+3. Same pattern for riemannDownArray: Simplify on gdown.rup where rup is \
+already simplified. The lowering Dot with a diagonal metric produces sums \
+of simple products -- fast to re-simplify. Switching to Cancel+Together \
+left the all-down Riemann in a form that made Kretschmann's contraction \
+and final Simplify much more expensive.\n\n\
+General lesson: in symbolic GR pipelines, intermediate simplification cost \
+is amortized by reduced downstream simplification cost. The right unit of \
+optimization is the algorithm (PreRiemann halving D[] calls, pair-symmetry \
+halving index raises), not the simplifier.", "Text"]
 
 },
 WindowSize -> {900, 800},
