@@ -80,7 +80,7 @@ Cell["2. Trace (Contraction of Two Indices)", "Section"],
 
 Cell["Contract R^m_{sigma m nu} (indices 1 and 3) to recover the Ricci tensor.", "Text"],
 
-Cell["ricciFromTrace = CT`Trace[schwRiemUp, {1, 3}];\n\
+Cell["ricciFromTrace = CT`Trc[schwRiemUp, {1, 3}];\n\
 Print[\"Trace R^m_smn == Ricci: \",\n\
   CT`EquivalentQ[CT`Components[ricciFromTrace],\n\
     CT`Components[schwRicci]]];\n\
@@ -88,14 +88,14 @@ Print[\"Result indices: \", CT`Indices[ricciFromTrace]]", "Input"],
 
 Cell["Trace the mixed AdS Ricci R^mu_mu to get the Ricci scalar.", "Text"],
 
-Cell["ricciScalarFromTrace = CT`Trace[adsRicciUp, {1, 2}];\n\
+Cell["ricciScalarFromTrace = CT`Trc[adsRicciUp, {1, 2}];\n\
 ricciScalarDirect = GRT`RicciScalarFromMetric[gAdS];\n\
 Print[\"Trace R^mu_mu = \", ricciScalarFromTrace];\n\
 Print[\"Direct R      = \", ricciScalarDirect];\n\
 Print[\"Agree: \", CT`EquivalentQ[ricciScalarFromTrace, ricciScalarDirect]]", "Input"],
 
 Cell["(* Timing *)\n\
-tTrace = First@RepeatedTiming[CT`Trace[schwRiemUp, {1, 3}]];\n\
+tTrace = First@RepeatedTiming[CT`Trc[schwRiemUp, {1, 3}]];\n\
 Print[\"Trace (Riemann -> Ricci): \", 1000 tTrace, \" ms\"]", "Input"],
 
 (* ===================================================================== *)
@@ -108,14 +108,14 @@ vUp = CT`Tensor[schwCoords, {\"up\"}, {1, 0, 0, 0}, schwGdown, <||>];\n\
 wDown = CT`Tensor[schwCoords, {\"down\"}, {-schwF, 0, 0, 0}, schwGdown, <||>];\n\
 \n\
 (* Outer product: rank-2 mixed tensor *)\n\
-vw = CT`Product[vUp, wDown];\n\
+vw = CT`Prod[vUp, wDown];\n\
 Print[\"Product rank: \", CT`Rank[vw]];\n\
 Print[\"Product indices: \", CT`Indices[vw]];\n\
 Print[\"Product components:\"];\n\
 CT`Components[vw] // MatrixForm", "Input"],
 
 Cell["(* Trace the product: v^mu w_mu *)\n\
-scalar = CT`Trace[vw, {1, 2}];\n\
+scalar = CT`Trc[vw, {1, 2}];\n\
 Print[\"v^mu w_mu = \", scalar, \"  (expect -(1-2M/r))\"];\n\
 \n\
 (* Contract does the same in one call *)\n\

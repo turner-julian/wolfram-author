@@ -95,11 +95,11 @@ Print["  round-trip correct: ", lowerRT];
 Print["\n=== 3. Trace R^m_{sigma m nu} -> Ricci ==="];
 riemUp = CT`Raise[riem, 1, g];
 tBuiltinTrace = First@RepeatedTiming[
-  CT`Trace[riemUp, {1, 3}]];
+  CT`Trc[riemUp, {1, 3}]];
 (* OGRe: already did TCalcRicciTensor; time getting components *)
 tOGReTrace = First@RepeatedTiming[
   OGRe`TGetComponents[ogreRicci, {-1, -1}, ogreID <> "C"]];
-traceResult = CT`Trace[riemUp, {1, 3}];
+traceResult = CT`Trc[riemUp, {1, 3}];
 traceAgree = CT`EquivalentQ[
   CT`Components[traceResult],
   CT`Components[ricci]];

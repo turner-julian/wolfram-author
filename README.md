@@ -43,7 +43,7 @@ K      = GRT`KretschmannFromMetric[g];
 
 (* Index gymnastics *)
 riemUp = CT`Raise[riem, 1, g];              (* raise first index *)
-ricciFromTrace = CT`Trace[riemUp, {1, 3}];  (* trace -> Ricci *)
+ricciFromTrace = CT`Trc[riemUp, {1, 3}];  (* trace -> Ricci *)
 
 (* Covariant derivative *)
 nablaR = GRT`CovariantDFromMetric[ricci, g];
