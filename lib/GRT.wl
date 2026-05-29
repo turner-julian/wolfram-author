@@ -81,11 +81,17 @@ christoffelArray[coords_, gdown_] := Module[{ginv, d = Length[coords], preChris}
   preChris = $GRTSimplify[preChris];
   $GRTSimplify[(1/2) ginv . preChris]];
 
-riemannUpArray[coords_, gamma_] := Module[{d = Length[coords]},
-  $GRTSimplify[Table[
-   D[gamma[[r, n, s]], coords[[m]]] - D[gamma[[r, m, s]], coords[[n]]]
-     + Sum[gamma[[r, m, l]] gamma[[l, n, s]] - gamma[[r, n, l]] gamma[[l, m, s]], {l, d}],
-   {r, d}, {s, d}, {m, d}, {n, d}]]];
+(* PreRiemann antisymmetrization: build one kernel array containing
+   d_m Gamma^r_ns + Sum_l Gamma^r_ml Gamma^l_ns, then recover the full
+   Riemann R^r_smn = PreR[r,s,m,n] - PreR[r,s,n,m] via Transpose-subtract.
+   Halves D[] evaluations (d^4 instead of 2d^4) and bilinear Sums
+   (d^5 instead of 2d^5). *)
+riemannUpArray[coords_, gamma_] := Module[{d = Length[coords], preR},
+  preR = Table[
+    D[gamma[[r, n, s]], coords[[m]]]
+      + Sum[gamma[[r, m, l]] gamma[[l, n, s]], {l, d}],
+    {r, d}, {s, d}, {m, d}, {n, d}];
+  $GRTSimplify[preR - Transpose[preR, {1, 2, 4, 3}]]];
 
 (* Lowering: gdown . rup contracts via Dot instead of Table[Sum[...]]. *)
 riemannDownArray[gdown_, rup_] := $GRTSimplify[gdown . rup];
@@ -118,14 +124,16 @@ RicciScalarFromMetric[g_?TensQ] := Module[{gdown = Components[g], ric},
   ric = Components[RicciFromMetric[g]];
   $GRTSimplify[Total[cachedInverse[gdown] ric, 2]]];
 
-(* Kretschmann: raise all 4 indices via sequential Dot (O(4 d^5)) instead
-   of O(d^8) Table[Sum[...]]. Then contract R_abcd R^abcd. *)
-KretschmannFromMetric[g_?TensQ] := Module[{gdown = Components[g], ginv, rdown, rup, d = Dim[g]},
+(* Kretschmann: raise last 2 indices (O(2 d^5) instead of O(4 d^5)),
+   then exploit pair symmetry R_{abcd} = R_{cdab}:
+     K = R_{abcd} R^{abcd} = Sum R^{ab}_{cd} R_{ab}^{cd}
+   where R^{ab}_{cd} = Transpose[R_{ab}^{cd}, {3,4,1,2}] by pair symmetry. *)
+KretschmannFromMetric[g_?TensQ] := Module[{gdown = Components[g], ginv, rdown, rmixed},
   ginv = cachedInverse[gdown];
   rdown = Components[RiemannFromMetric[g]];
-  rup = rdown;
-  Do[rup = contractMatIndex[ginv, rup, k, 4], {k, 4}];
-  $GRTSimplify[Total[rdown rup, 4]]];
+  rmixed = rdown;
+  Do[rmixed = contractMatIndex[ginv, rmixed, k, 4], {k, 3, 4}];
+  $GRTSimplify[Total[Transpose[rmixed, {3, 4, 1, 2}] rmixed, 4]]];
 
 (* ------------------------- OGRe-backed implementations -------------------- *)
 
