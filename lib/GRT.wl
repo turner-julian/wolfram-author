@@ -63,26 +63,41 @@ GeodesicEquationsFromMetricOGRe::usage =
 
 Begin["`Private`"];
 
+(* Configurable simplifier — same default as CT. *)
+If[!ValueQ[$GRTSimplify], $GRTSimplify = Simplify[#, TimeConstraint -> 1] &];
+
 (* ------------------------- built-in array implementations ----------------- *)
 
-christoffelArray[coords_, gdown_] := Module[{gup = Inverse[gdown], d = Length[coords]},
-  Table[
-   (1/2) Sum[
-     gup[[a, s]] (D[gdown[[s, c]], coords[[b]]] + D[gdown[[s, b]], coords[[c]]]
-        - D[gdown[[b, c]], coords[[s]]]), {s, d}],
-   {a, d}, {b, d}, {c, d}] // Simplify];
+(* Christoffel: split into pre-Christoffel (derivatives only, cheap) then
+   contract with g^{-1} via Dot. GREATER2's approach — avoids mixing
+   derivative expressions with inverse-metric terms in one Sum, making
+   intermediate simplification cheaper. *)
+christoffelArray[coords_, gdown_] := Module[{ginv, d = Length[coords], preChris},
+  ginv = cachedInverse[gdown];
+  preChris = Table[
+    D[gdown[[k, i]], coords[[j]]] + D[gdown[[j, k]], coords[[i]]]
+      - D[gdown[[i, j]], coords[[k]]],
+    {k, d}, {i, d}, {j, d}];
+  preChris = $GRTSimplify[preChris];
+  $GRTSimplify[(1/2) ginv . preChris]];
 
 riemannUpArray[coords_, gamma_] := Module[{d = Length[coords]},
-  Table[
+  $GRTSimplify[Table[
    D[gamma[[r, n, s]], coords[[m]]] - D[gamma[[r, m, s]], coords[[n]]]
      + Sum[gamma[[r, m, l]] gamma[[l, n, s]] - gamma[[r, n, l]] gamma[[l, m, s]], {l, d}],
-   {r, d}, {s, d}, {m, d}, {n, d}] // Simplify];
+   {r, d}, {s, d}, {m, d}, {n, d}]]];
 
-riemannDownArray[coords_, gdown_, rup_] := Module[{d = Length[coords]},
-  Table[Sum[gdown[[r, a]] rup[[a, s, m, n]], {a, d}], {r, d}, {s, d}, {m, d}, {n, d}]
-   // Simplify];
+(* Lowering: gdown . rup contracts via Dot instead of Table[Sum[...]]. *)
+riemannDownArray[gdown_, rup_] := $GRTSimplify[gdown . rup];
 
-ricciArray[rup_, d_] := Table[Sum[rup[[m, s, m, n]], {m, d}], {s, d}, {n, d}] // Simplify;
+(* Direct Ricci from Christoffel — avoids building the full rank-4 Riemann
+   when only Ricci is needed. Computes R^m_{smn} summed over m directly. *)
+ricciDirectArray[coords_, gamma_] := Module[{d = Length[coords]},
+  $GRTSimplify[Table[
+    Sum[D[gamma[[m, n, s]], coords[[m]]] - D[gamma[[m, m, s]], coords[[n]]]
+      + Sum[gamma[[m, m, l]] gamma[[l, n, s]] - gamma[[m, n, l]] gamma[[l, m, s]], {l, d}],
+    {m, d}],
+  {s, d}, {n, d}]]];
 
 ChristoffelFromMetric[g_?TensQ] := With[{coords = Coords[g]},
   Tensor[coords, {"up", "down", "down"},
@@ -92,24 +107,25 @@ RiemannFromMetric[g_?TensQ] := Module[{coords = Coords[g], gdown = Components[g]
   gamma = cachedChristoffel[coords, gdown];
   rup = riemannUpArray[coords, gamma];
   Tensor[coords, {"down", "down", "down", "down"},
-   riemannDownArray[coords, gdown, rup], gdown, Conventions[g]]];
+   riemannDownArray[gdown, rup], gdown, Conventions[g]]];
 
-RicciFromMetric[g_?TensQ] := Module[{coords = Coords[g], gdown = Components[g], gamma, rup},
+(* Ricci: direct path from Christoffel, no full Riemann needed. *)
+RicciFromMetric[g_?TensQ] := Module[{coords = Coords[g], gdown = Components[g], gamma},
   gamma = cachedChristoffel[coords, gdown];
-  rup = riemannUpArray[coords, gamma];
-  Tensor[coords, {"down", "down"}, ricciArray[rup, Length[coords]], gdown, Conventions[g]]];
+  Tensor[coords, {"down", "down"}, ricciDirectArray[coords, gamma], gdown, Conventions[g]]];
 
 RicciScalarFromMetric[g_?TensQ] := Module[{gdown = Components[g], ric},
   ric = Components[RicciFromMetric[g]];
-  Simplify[Total[Inverse[gdown] ric, 2]]];
+  $GRTSimplify[Total[cachedInverse[gdown] ric, 2]]];
 
-KretschmannFromMetric[g_?TensQ] := Module[{gdown = Components[g], gup, rdown, rup, d = Dim[g]},
-  gup = Inverse[gdown];
+(* Kretschmann: raise all 4 indices via sequential Dot (O(4 d^5)) instead
+   of O(d^8) Table[Sum[...]]. Then contract R_abcd R^abcd. *)
+KretschmannFromMetric[g_?TensQ] := Module[{gdown = Components[g], ginv, rdown, rup, d = Dim[g]},
+  ginv = cachedInverse[gdown];
   rdown = Components[RiemannFromMetric[g]];
-  rup = Table[
-    Sum[gup[[r, a]] gup[[s, b]] gup[[m, c]] gup[[n, e]] rdown[[a, b, c, e]],
-     {a, d}, {b, d}, {c, d}, {e, d}], {r, d}, {s, d}, {m, d}, {n, d}];
-  Simplify[Total[rdown rup, 4]]];
+  rup = rdown;
+  Do[rup = contractMatIndex[ginv, rup, k, 4], {k, 4}];
+  $GRTSimplify[Total[rdown rup, 4]]];
 
 (* ------------------------- OGRe-backed implementations -------------------- *)
 
@@ -175,7 +191,7 @@ CovariantDFromMetric[t_?TensQ, g_?TensQ] := Module[
   (* Gamma corrections for each tensor index *)
   Do[result += gammaCorrectionCD[arr, gamma, idx[[k]], k, r, d], {k, r}];
 
-  result = Simplify[result];
+  result = $GRTSimplify[result];
   Tensor[coords, Join[{"down"}, idx], result, gdown, Conventions[g]]];
 
 (* Gamma correction for one index of the tensor.
@@ -235,7 +251,7 @@ GeodesicEquationsFromMetric[g_?TensQ, param_] := Module[
       Sum[gammaOnCurve[[mu, a, b]] xdot[[a]] xdot[[b]], {a, d}, {b, d}],
     {mu, d}];
 
-  Simplify[eqs]];
+  $GRTSimplify[eqs]];
 
 (* ----------------------- OGRe comparison functions ----------------------- *)
 

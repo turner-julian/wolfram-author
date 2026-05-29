@@ -50,11 +50,22 @@ Transform::usage =
 rules = {old1 -> f1[newCoords], old2 -> f2[newCoords], ...} is the backward map \
 (old coords as functions of new). Transforms components and the stored metric.";
 
-(* --- Cache (shared with MAuthorGR) --- *)
+(* --- Cache (shared with GRT) --- *)
 $Cache::usage = "Internal computation cache. Use CacheClear[] to reset.";
 CacheClear::usage = "CacheClear[] clears the computation cache (inverse metrics, Christoffels, etc.).";
-CacheStore::usage = "CacheStore[key, val] stores in the shared cache (internal API for MAuthorGR).";
+CacheStore::usage = "CacheStore[key, val] stores in the shared cache (internal API for GRT).";
 CacheGet::usage = "CacheGet[key] retrieves from cache; Missing[] if absent (internal API).";
+
+(* --- Utilities exported for GRT --- *)
+cachedInverse::usage = "cachedInverse[m] returns Inverse[m], caching the result.";
+contractMatIndex::usage = "contractMatIndex[mat, arr, k, rank] contracts a d*d matrix \
+with the k-th index of a rank-r array via Dot (Transpose-Dot-Transpose back).";
+
+(* Configurable simplifier — default uses TimeConstraint for speed.
+   Override: $CTSimplify = Simplify; or $CTSimplify = Identity; *)
+$CTSimplify::usage = "$CTSimplify is the simplification function applied to results. \
+Default: Simplify[#, TimeConstraint -> 1]&. Set to Identity to skip.";
+If[!ValueQ[$CTSimplify], $CTSimplify = Simplify[#, TimeConstraint -> 1] &];
 
 If[!AssociationQ[$Cache], $Cache = <||>];
 
@@ -146,11 +157,16 @@ cachedInverse[m_] := Module[{key = {"inv", Hash[m]}, c},
    mat . arr contracts mat's last index with arr's first, so we
    Transpose arr to move index k to position 1, Dot, Transpose back.
    This leverages Dot's internal optimisation (BLAS path for packed
-   numeric arrays, and well-optimised symbolic path). *)
+   numeric arrays, and well-optimised symbolic path).
+
+   Transpose[arr, perm] in Mathematica sends level p of arr to level
+   perm[[p]] of the result.  To place arr's k-th level at position 1
+   we need perm[[k]]=1, with the rest filling 2..rank in order:
+     perm = {2, 3, ..., k, 1, k+1, ..., rank}  *)
 contractMatIndex[mat_, arr_, k_, rank_] :=
   If[rank <= 1 || k == 1,
     mat . arr,
-    Module[{perm = Join[{k}, Delete[Range[rank], k]]},
+    Module[{perm = Join[Range[2, k], {1}, Range[k + 1, rank]]},
       Transpose[mat . Transpose[arr, perm], Ordering[perm]]]];
 
 (* ====================== Index raising / lowering ========================== *)
@@ -172,7 +188,7 @@ Raise[t_?TensQ, n_Integer, gdown_?MatrixQ] := Module[
   {idx = Indices[t], r = Rank[t], ginv, arr},
   If[idx[[n]] =!= "down", Message[Raise::notdown, n]; Return[$Failed]];
   ginv = cachedInverse[gdown];
-  arr = Simplify[contractMatIndex[ginv, Components[t], n, r]];
+  arr = $CTSimplify[contractMatIndex[ginv, Components[t], n, r]];
   Tensor[Coords[t], ReplacePart[idx, n -> "up"], arr, gdown, Conventions[t]]];
 
 (* Metric passed as Tensor *)
@@ -186,7 +202,7 @@ Raise[t_?TensQ, n_Integer] := Module[{gd = getMetricDown[t]},
 Lower[t_?TensQ, n_Integer, gdown_?MatrixQ] := Module[
   {idx = Indices[t], r = Rank[t], arr},
   If[idx[[n]] =!= "up", Message[Lower::notup, n]; Return[$Failed]];
-  arr = Simplify[contractMatIndex[gdown, Components[t], n, r]];
+  arr = $CTSimplify[contractMatIndex[gdown, Components[t], n, r]];
   Tensor[Coords[t], ReplacePart[idx, n -> "down"], arr, gdown, Conventions[t]]];
 
 Lower[t_?TensQ, n_Integer, g_?TensQ] :=
@@ -203,7 +219,14 @@ Trc[t_?TensQ, {i_Integer, j_Integer}] := Module[
   {idx = Indices[t], contracted, newIdx},
   If[Sort[{idx[[i]], idx[[j]]}] =!= {"down", "up"},
     Message[Trace::badpair, idx[[i]], idx[[j]]]; Return[$Failed]];
-  contracted = Simplify[TensorContract[Components[t], {{i, j}}]];
+  (* Tr-based trace: move contracted indices to positions 1,2, then Tr[..,Plus,2].
+     Much faster than TensorContract for this case. *)
+  Module[{ii, jj, perm, rank = Rank[t], arr = Components[t]},
+    {ii, jj} = Sort[{i, j}];
+    If[rank == 2,
+      contracted = $CTSimplify[Tr[arr]],
+      perm = Join[{ii, jj}, Delete[Range[rank], {{ii}, {jj}}]];
+      contracted = $CTSimplify[Tr[Transpose[arr, perm], Plus, 2]]]];
   newIdx = Delete[idx, {{i}, {j}}];
   If[newIdx === {},
     contracted,
@@ -232,11 +255,11 @@ Transform[t_?TensQ, newCoords_List, rules_List] := Module[
   oldExprs = oldCoords /. rules;
 
   (* Backward Jacobian M_{mu,mu'} = d(old_mu)/d(new_{mu'}) *)
-  backJac = Simplify[Table[D[oldExprs[[mu]], newCoords[[mup]]],
+  backJac = $CTSimplify[Table[D[oldExprs[[mu]], newCoords[[mup]]],
     {mu, d}, {mup, d}]];
 
   (* Forward Jacobian for contravariant indices *)
-  fwdJac = Simplify[Inverse[backJac]];
+  fwdJac = $CTSimplify[Inverse[backJac]];
 
   (* Substitute old -> new in components *)
   arr = Components[t] /. rules;
@@ -247,12 +270,12 @@ Transform[t_?TensQ, newCoords_List, rules_List] := Module[
   Do[arr = contractMatIndex[
       If[idx[[k]] === "down", Transpose[backJac], fwdJac], arr, k, r],
     {k, r}];
-  arr = Simplify[arr];
+  arr = $CTSimplify[arr];
 
   (* Transform the stored metric (always all-down rank-2) *)
   gdown = Metric[t];
   If[gdown =!= Automatic,
-    gdown = Simplify[Transpose[backJac] . (gdown /. rules) . backJac]];
+    gdown = $CTSimplify[Transpose[backJac] . (gdown /. rules) . backJac]];
 
   Tensor[newCoords, idx, arr, gdown, Conventions[t]]];
 
