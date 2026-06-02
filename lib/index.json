@@ -139,6 +139,89 @@
         "candidates": [{"id": "builtin", "seconds": 0.000146}],
         "winner": "builtin"
       }
+    },
+    {
+      "name": "WeylFromMetric",
+      "file": "GRT.wl",
+      "context": "GRT`",
+      "signature": "WeylFromMetric[g_?TensQ]",
+      "summary": "All-lower Weyl (conformal) tensor C_{rho sigma mu nu}, as a Tensor {down,down,down,down}. Vanishes in D<=3 and for conformally flat spaces.",
+      "representation": "input metric Tensor {down,down}; output Tensor {down,down,down,down}",
+      "conventions": {"weyl": "C_{abcd} = R_{abcd} - (2/(D-2))(g_{a[c}R_{d]b} - g_{b[c}R_{d]a}) + (2/((D-1)(D-2))) R g_{a[c}g_{d]b}"},
+      "depends_on": ["CT", "GRT (Riemann, Ricci, RicciScalar)"],
+      "benchmark": {
+        "date": "2026-05-31",
+        "problem": "Schwarzschild D=4",
+        "method": "EquivalentQ",
+        "candidates": [
+          {"id": "builtin-array"},
+          {"id": "ogre"},
+          {"id": "xact"}
+        ],
+        "note": "Three-way equivalence verified: Schwarzschild Weyl=Riemann (vacuum), AdS4 Weyl=0 (conformally flat)"
+      },
+      "equivalence": {"verified": true, "method": "EquivalentQ", "reference": "builtin-array", "against": ["ogre", "xact"]}
+    },
+    {
+      "name": "EinsteinFromMetric",
+      "file": "GRT.wl",
+      "context": "GRT`",
+      "signature": "EinsteinFromMetric[g_?TensQ]",
+      "summary": "Einstein tensor G_{mu nu} = R_{mu nu} - (1/2) R g_{mu nu}, as a Tensor {down,down}.",
+      "representation": "input metric Tensor {down,down}; output Tensor {down,down}",
+      "conventions": {"einstein": "G_{mu nu} = R_{mu nu} - (1/2) R g_{mu nu}"},
+      "depends_on": ["CT", "GRT (Ricci, RicciScalar)"],
+      "benchmark": {
+        "date": "2026-05-31",
+        "problem": "Schwarzschild D=4 / AdS4",
+        "method": "EquivalentQ",
+        "candidates": [
+          {"id": "builtin-array"},
+          {"id": "ogre"},
+          {"id": "xact"}
+        ],
+        "note": "Three-way equivalence verified: Schwarzschild G=0, AdS4 G=3/L^2 g"
+      },
+      "equivalence": {"verified": true, "method": "EquivalentQ", "reference": "builtin-array", "against": ["ogre", "xact"]}
+    },
+    {
+      "name": "TracelessRicciFromMetric",
+      "file": "GRT.wl",
+      "context": "GRT`",
+      "signature": "TracelessRicciFromMetric[g_?TensQ]",
+      "summary": "Traceless Ricci tensor S_{mu nu} = R_{mu nu} - (1/D) R g_{mu nu}, as a Tensor {down,down}. Trace = 0 by construction.",
+      "representation": "input metric Tensor {down,down}; output Tensor {down,down}",
+      "depends_on": ["CT", "GRT (Ricci, RicciScalar)"],
+      "benchmark": {
+        "date": "2026-05-31",
+        "problem": "Schwarzschild D=4 / AdS4",
+        "method": "EquivalentQ",
+        "candidates": [
+          {"id": "builtin-array"},
+          {"id": "ogre"}
+        ],
+        "note": "Two-way equivalence verified: S=0 for vacuum and maximally symmetric"
+      },
+      "equivalence": {"verified": true, "method": "EquivalentQ", "reference": "builtin-array", "against": ["ogre"]}
+    },
+    {
+      "name": "KillingEquationsFromMetric",
+      "file": "GRT.wl",
+      "context": "GRT`",
+      "signature": "KillingEquationsFromMetric[g_?TensQ]",
+      "summary": "Killing equation PDE system as a list of equations {eq==0,...}. D(D+1)/2 independent equations for D unknown functions xi[k][coords...].",
+      "depends_on": ["CT", "GRT (Christoffel)"],
+      "benchmark": {
+        "date": "2026-05-31",
+        "problem": "Schwarzschild D=4",
+        "method": "EquivalentQ (LHS arrays)",
+        "candidates": [
+          {"id": "direct-christoffel"},
+          {"id": "covariantd"}
+        ],
+        "note": "Both candidates produce 10 equations; equivalence verified on LHS arrays"
+      },
+      "equivalence": {"verified": true, "method": "EquivalentQ", "reference": "direct-christoffel", "against": ["covariantd"]}
     }
   ],
   "cache": {

@@ -45,6 +45,20 @@ ChristoffelFromMetricOGRe::usage =
   "Christoffel symbols via OGRe, as a canonical Tensor {up,down,down}.";
 RicciScalarFromMetricOGRe::usage = "Ricci scalar via OGRe (a scalar expression).";
 
+WeylFromMetric::usage =
+  "WeylFromMetric[g] gives the Weyl (conformal) tensor C_{rho sigma mu nu} \
+as a Tensor {down,down,down,down}. Vanishes identically in D<=3.";
+EinsteinFromMetric::usage =
+  "EinsteinFromMetric[g] gives the Einstein tensor G_{mu nu} = R_{mu nu} - \
+(1/2) R g_{mu nu} as a Tensor {down,down}.";
+TracelessRicciFromMetric::usage =
+  "TracelessRicciFromMetric[g] gives the traceless Ricci tensor S_{mu nu} = \
+R_{mu nu} - (1/D) R g_{mu nu} as a Tensor {down,down}. Trace g^{mu nu} S_{mu nu} = 0.";
+KillingEquationsFromMetric::usage =
+  "KillingEquationsFromMetric[g] returns the Killing equation system as a list \
+of equations {eq1 == 0, eq2 == 0, ...}. Unknowns are D functions \
+\\[Xi][1][coords], ..., \\[Xi][D][coords]. Returns D(D+1)/2 independent equations.";
+
 CovariantDFromMetric::usage =
   "CovariantDFromMetric[t, g] computes the covariant derivative of Tensor t \
 with respect to the Levi-Civita connection of metric g. Returns a Tensor with \
@@ -55,11 +69,38 @@ GeodesicEquationsFromMetric::usage =
 returns the geodesic equations as a list of expressions equal to zero. \
 Coordinates are promoted to functions of the affine parameter.";
 
+HamiltonianFromMetric::usage =
+  "HamiltonianFromMetric[g, p] gives the geodesic Hamiltonian \
+H = g^{mu nu} p_mu p_nu for a momentum covector p (a length-D list of the lower \
+components p_mu). Contracts the inverse metric of g with p. For Kerr in \
+Boyer-Lindquist with p_t = -E, p_phi = L, the product Sigma*H is Carter-separable \
+into R(r) + Theta(theta) (mixed partial d_r d_theta vanishes).";
+
 (* OGRe comparison functions for benchmarking *)
+WeylFromMetricOGRe::usage =
+  "Weyl tensor via OGRe, as a canonical Tensor.";
+EinsteinFromMetricOGRe::usage =
+  "Einstein tensor via OGRe, as a canonical Tensor.";
+TracelessRicciFromMetricOGRe::usage =
+  "Traceless Ricci tensor via OGRe, as a canonical Tensor.";
 CovariantDFromMetricOGRe::usage =
   "CovariantDFromMetricOGRe[t, g] covariant derivative via OGRe. Requires OGRe.";
 GeodesicEquationsFromMetricOGRe::usage =
   "GeodesicEquationsFromMetricOGRe[g] geodesic equations via OGRe. Requires OGRe.";
+
+(* xAct/xCoba adapter functions for benchmarking *)
+RiemannFromMetricXAct::usage =
+  "All-lower Riemann tensor via xAct/xCoba, as a canonical Tensor.";
+RicciFromMetricXAct::usage =
+  "Ricci tensor via xAct/xCoba, as a canonical Tensor.";
+RicciScalarFromMetricXAct::usage =
+  "Ricci scalar via xAct/xCoba.";
+WeylFromMetricXAct::usage =
+  "Weyl tensor via xAct/xCoba, as a canonical Tensor.";
+EinsteinFromMetricXAct::usage =
+  "Einstein tensor via xAct/xCoba, as a canonical Tensor.";
+KretschmannFromMetricXAct::usage =
+  "Kretschmann scalar via xAct/xCoba.";
 
 Begin["`Private`"];
 
@@ -135,6 +176,93 @@ KretschmannFromMetric[g_?TensQ] := Module[{gdown = Components[g], ginv, rdown, r
   Do[rmixed = contractMatIndex[ginv, rmixed, k, 4], {k, 3, 4}];
   $GRTSimplify[Total[Transpose[rmixed, {3, 4, 1, 2}] rmixed, 4]]];
 
+(* Weyl: C_{abcd} = R_{abcd} - (2/(D-2))(g_{a[c}R_{d]b} - g_{b[c}R_{d]a})
+                               + (2/((D-1)(D-2))) R g_{a[c}g_{d]b}
+   The antisymmetrized products expand as:
+     s1_{abcd} = g_{ac}R_{db} - g_{ad}R_{cb} - g_{bc}R_{da} + g_{bd}R_{ca}
+               = 2*(g_{a[c}R_{d]b} - g_{b[c}R_{d]a})
+     s2_{abcd} = g_{ac}g_{bd} - g_{ad}g_{bc} = 2*g_{a[c}g_{d]b}
+   so C = R - (1/(D-2))*s1 + (R/((D-1)(D-2)))*s2. *)
+WeylFromMetric[g_?TensQ] := Module[
+  {coords = Coords[g], gdown = Components[g], dim = Dim[g],
+   rdown, ricdown, rscalar, s1, s2, weyl},
+
+  If[dim <= 2, Return[Tensor[coords, {"down","down","down","down"},
+    ConstantArray[0, {dim,dim,dim,dim}], gdown, Conventions[g]]]];
+
+  rdown = Components[RiemannFromMetric[g]];
+  ricdown = Components[RicciFromMetric[g]];
+  rscalar = RicciScalarFromMetric[g];
+
+  s1 = Table[
+    gdown[[aa,cc]] ricdown[[dd,bb]] - gdown[[aa,dd]] ricdown[[cc,bb]]
+    - gdown[[bb,cc]] ricdown[[dd,aa]] + gdown[[bb,dd]] ricdown[[cc,aa]],
+    {aa, dim}, {bb, dim}, {cc, dim}, {dd, dim}];
+
+  s2 = Table[
+    gdown[[aa,cc]] gdown[[bb,dd]] - gdown[[aa,dd]] gdown[[bb,cc]],
+    {aa, dim}, {bb, dim}, {cc, dim}, {dd, dim}];
+
+  weyl = rdown - (1/(dim - 2)) s1 + (rscalar/((dim - 1)(dim - 2))) s2;
+
+  Tensor[coords, {"down","down","down","down"},
+   $GRTSimplify[weyl], gdown, Conventions[g]]];
+
+(* Einstein: G_{mu nu} = R_{mu nu} - (1/2) R g_{mu nu}. *)
+EinsteinFromMetric[g_?TensQ] := Module[
+  {coords = Coords[g], gdown = Components[g], ricdown, rscalar},
+  ricdown = Components[RicciFromMetric[g]];
+  rscalar = RicciScalarFromMetric[g];
+  Tensor[coords, {"down","down"},
+   $GRTSimplify[ricdown - (1/2) rscalar gdown], gdown, Conventions[g]]];
+
+(* Traceless Ricci: S_{mu nu} = R_{mu nu} - (1/D) R g_{mu nu}.
+   Trace g^{mn} S_{mn} = R - R = 0 by construction. *)
+TracelessRicciFromMetric[g_?TensQ] := Module[
+  {coords = Coords[g], gdown = Components[g], dim = Dim[g],
+   ricdown, rscalar},
+  ricdown = Components[RicciFromMetric[g]];
+  rscalar = RicciScalarFromMetric[g];
+  Tensor[coords, {"down","down"},
+   $GRTSimplify[ricdown - (1/dim) rscalar gdown], gdown, Conventions[g]]];
+
+(* Killing equations: d_mu xi_nu + d_nu xi_mu - 2 Gamma^a_{mu nu} xi_a = 0.
+   Returns D(D+1)/2 independent equations (mu <= nu) for D unknown functions
+   xi[k][coords...]. *)
+KillingEquationsFromMetric[g_?TensQ] := Module[
+  {coords = Coords[g], gdown = Components[g], dim = Dim[g], gamma,
+   xiLow, eqs},
+
+  gamma = cachedChristoffel[coords, gdown];
+
+  xiLow = Table[Global`\[Xi][mu] @@ coords, {mu, dim}];
+
+  eqs = Flatten@Table[
+    $GRTSimplify[
+      D[xiLow[[nu]], coords[[mu]]] + D[xiLow[[mu]], coords[[nu]]]
+      - 2 Sum[gamma[[aa, mu, nu]] xiLow[[aa]], {aa, dim}]] == 0,
+    {mu, dim}, {nu, mu, dim}];
+
+  eqs];
+
+(* Killing equations via CovariantD (benchmark candidate 2).
+   Constructs xi as a rank-1 Tensor, computes nabla xi, symmetrizes. *)
+KillingEquationsFromMetricCovD[g_?TensQ] := Module[
+  {coords = Coords[g], gdown = Components[g], dim = Dim[g],
+   xiLow, xiTens, nablaXi, symm, eqs},
+
+  xiLow = Table[Global`\[Xi][mu] @@ coords, {mu, dim}];
+  xiTens = Tensor[coords, {"down"}, xiLow, gdown, Conventions[g]];
+
+  nablaXi = CovariantDFromMetric[xiTens, g];
+  symm = Components[nablaXi] + Transpose[Components[nablaXi]];
+
+  eqs = Flatten@Table[
+    $GRTSimplify[symm[[mu, nu]]] == 0,
+    {mu, dim}, {nu, mu, dim}];
+
+  eqs];
+
 (* ------------------------- OGRe-backed implementations -------------------- *)
 
 (* OGRe`TNewCoordinates is HoldRest (it clears/protects the coordinate symbols),
@@ -168,6 +296,29 @@ RicciFromMetricOGRe[g_?TensQ] := Module[{id = ogreMetric[g], rid},
 RicciScalarFromMetricOGRe[g_?TensQ] := Module[{id = ogreMetric[g], sid},
   sid = OGRe`TCalcRicciScalar[id];
   First@Flatten@{OGRe`TGetComponents[sid, {}, id <> "Coords"]}];
+
+WeylFromMetricOGRe[g_?TensQ] := Module[{id = ogreMetric[g], wid},
+  wid = OGRe`TCalcWeylTensor[id];
+  Tensor[Coords[g], {"down","down","down","down"},
+   OGRe`TGetComponents[wid, {-1,-1,-1,-1}, id <> "Coords"],
+   Components[g], Conventions[g]]];
+
+EinsteinFromMetricOGRe[g_?TensQ] := Module[{id = ogreMetric[g], eid},
+  eid = OGRe`TCalcEinsteinTensor[id];
+  Tensor[Coords[g], {"down","down"},
+   OGRe`TGetComponents[eid, {-1,-1}, id <> "Coords"],
+   Components[g], Conventions[g]]];
+
+(* OGRe has no direct traceless Ricci; compose from Ricci + scalar. *)
+TracelessRicciFromMetricOGRe[g_?TensQ] := Module[
+  {id = ogreMetric[g], ricID, scID, ricComps, scVal, dim = Dim[g],
+   coords = Coords[g], gdown = Components[g]},
+  ricID = OGRe`TCalcRicciTensor[id];
+  scID = OGRe`TCalcRicciScalar[id];
+  ricComps = OGRe`TGetComponents[ricID, {-1,-1}, id <> "Coords"];
+  scVal = First@Flatten@{OGRe`TGetComponents[scID, {}, id <> "Coords"]};
+  Tensor[coords, {"down","down"},
+   $GRTSimplify[ricComps - (1/dim) scVal gdown], gdown, Conventions[g]]];
 
 (* ----------------------- Cached Christoffel ------------------------------ *)
 
@@ -261,6 +412,21 @@ GeodesicEquationsFromMetric[g_?TensQ, param_] := Module[
 
   $GRTSimplify[eqs]];
 
+(* ----------------------- Geodesic Hamiltonian ---------------------------- *)
+
+(* H = g^{mu nu} p_mu p_nu for a momentum covector p (length-D list of the
+   lower components p_mu). The Hamilton-Jacobi / Carter Hamiltonian: contracts
+   the cached inverse metric directly, H = p . g^{-1} . p. For Kerr (BL),
+   Sigma*H separates as R(r) + Theta(theta). Demanded by spec-loom Phase E
+   (Kerr Carter separability), which had to build this externally. *)
+HamiltonianFromMetric::baddim =
+  "Momentum covector length `1` does not match metric dimension `2`.";
+HamiltonianFromMetric[g_?TensQ, p_List] := Module[{ginv, d = Dim[g]},
+  If[Length[p] =!= d,
+    Message[HamiltonianFromMetric::baddim, Length[p], d]; Return[$Failed]];
+  ginv = cachedInverse[Components[g]];
+  $GRTSimplify[p . ginv . p]];
+
 (* ----------------------- OGRe comparison functions ----------------------- *)
 
 (* Covariant derivative via OGRe *)
@@ -287,6 +453,127 @@ GeodesicEquationsFromMetricOGRe[g_?TensQ] :=
 GeodesicEquationsFromMetricOGRe[g_?TensQ, param_] := Module[
   {metID = ogreMetric[g]},
   OGRe`TCalcGeodesicEquations[metID, param]];
+
+(* ----------------------- xAct/xCoba adapter -------------------------------- *)
+
+(* xActMetricSetup: create a fresh xCoba geometric structure from a
+   canonical metric Tensor. Returns an Association with handles for
+   the manifold, metric symbol, chart, covariant derivative, and the
+   curvature tensor symbols (concatenated with the cd name).
+   Requires xAct`xTensor` and xAct`xCoba` to be loaded (--load xcoba).
+
+   Index convention: down indices use {k, -chart}, up use {k, chart}.
+   xCoba stores computed curvature tensor components as DownValues;
+   extract via Last@ComponentValue@TensorSym[{idx, +-chart}, ...].
+
+   Note: Christoffel connection coefficients are NOT stored as tensor
+   DownValues by MetricCompute — only true tensors (Riemann, Ricci,
+   Weyl, Einstein) and scalars (RicciScalar, Kretschmann) extract
+   correctly. *)
+
+xActMetricSetup[g_?TensQ] := Module[
+  {coords = Coords[g], gdown = Components[g], dim = Dim[g],
+   uid, mfSym, metSym, cdSym, chartSym, abIdx},
+
+  uid = ToString[Unique["xa"]];
+
+  (* Symbols in Global` — unique per call *)
+  mfSym = Symbol["Global`M" <> uid];
+  metSym = Symbol["Global`met" <> uid];
+  cdSym = Symbol["Global`cd" <> uid];
+  chartSym = Symbol["Global`ch" <> uid];
+
+  (* Abstract indices: need enough for rank-4 tensors *)
+  abIdx = Table[Symbol["Global`idx" <> uid <> ToString[k]], {k, 2 dim}];
+
+  Quiet[Block[{$Output = {}},
+    xAct`xTensor`DefManifold[mfSym, dim, abIdx];
+    xAct`xTensor`DefMetric[-1, metSym @@ (-Take[abIdx, 2]),
+      cdSym, {";", "\[Del]"}];
+    With[{ch = chartSym, m = mfSym, c = coords, d = dim},
+      xAct`xCoba`DefChart[ch, m, Range[0, d - 1],
+        Through[c[]]]];
+    (* xCoba coordinates are scalar fields: t[], r[], etc.
+       Our metric uses bare symbols: t, r, etc. Substitute. *)
+    xAct`xCoba`MetricInBasis[metSym, -chartSym,
+      gdown /. Thread[coords -> Through[coords[]]]];
+    xAct`xCoba`MetricCompute[metSym, chartSym, All];
+  ]];
+
+  (* Rule to convert xCoba scalar fields back to bare symbols:
+     t[] -> t, r[] -> r, etc. Applied to extracted components. *)
+  <|"metric" -> metSym, "chart" -> chartSym, "cd" -> cdSym,
+    "dim" -> dim, "coords" -> coords, "gdown" -> gdown,
+    "toBareSym" -> Thread[Through[coords[]] -> coords],
+    (* curvature symbols: concatenation of tensor name + cd name *)
+    "Riemann" -> Symbol["Global`Riemann" <> uid],
+    "Ricci" -> Symbol["Global`Ricci" <> uid],
+    "RicciScalar" -> Symbol["Global`RicciScalar" <> uid],
+    "Weyl" -> Symbol["Global`Weyl" <> uid],
+    "Einstein" -> Symbol["Global`Einstein" <> uid],
+    "Kretschmann" -> Symbol["Global`Kretschmann" <> uid]|>];
+
+xActExtractRank2[sym_, ch_, dim_] := Table[
+  Simplify@Last@xAct`xCoba`ComponentValue@sym[{aa, -ch}, {bb, -ch}],
+  {aa, 0, dim - 1}, {bb, 0, dim - 1}];
+
+xActExtractRank4[sym_, ch_, dim_] := Table[
+  Simplify@Last@xAct`xCoba`ComponentValue@sym[{aa, -ch}, {bb, -ch}, {cc, -ch}, {dd, -ch}],
+  {aa, 0, dim - 1}, {bb, 0, dim - 1}, {cc, 0, dim - 1}, {dd, 0, dim - 1}];
+
+xActExtractScalar[sym_] := Simplify@Last@xAct`xCoba`ComponentValue@sym[];
+
+(* Curvature tensor symbols are named <TensorName><cdName>.
+   DefMetric[..., metSym[...], cdSym, ...] creates RiemanncdSym, etc.
+   We find them via GiveSymbol. *)
+
+RiemannFromMetricXAct[g_?TensQ] := Module[
+  {setup = xActMetricSetup[g], ch, cdSym, dim, sym, comps, toBare},
+  ch = setup["chart"]; cdSym = setup["cd"]; dim = setup["dim"];
+  toBare = setup["toBareSym"];
+  sym = xAct`xTensor`GiveSymbol[xAct`xTensor`Riemann, cdSym];
+  comps = xActExtractRank4[sym, ch, dim] /. toBare;
+  Tensor[Coords[g], {"down","down","down","down"},
+   comps, Components[g], Conventions[g]]];
+
+RicciFromMetricXAct[g_?TensQ] := Module[
+  {setup = xActMetricSetup[g], ch, cdSym, dim, sym, comps, toBare},
+  ch = setup["chart"]; cdSym = setup["cd"]; dim = setup["dim"];
+  toBare = setup["toBareSym"];
+  sym = xAct`xTensor`GiveSymbol[xAct`xTensor`Ricci, cdSym];
+  comps = xActExtractRank2[sym, ch, dim] /. toBare;
+  Tensor[Coords[g], {"down","down"},
+   comps, Components[g], Conventions[g]]];
+
+RicciScalarFromMetricXAct[g_?TensQ] := Module[
+  {setup = xActMetricSetup[g], cdSym, sym, toBare},
+  cdSym = setup["cd"]; toBare = setup["toBareSym"];
+  sym = xAct`xTensor`GiveSymbol[xAct`xTensor`RicciScalar, cdSym];
+  xActExtractScalar[sym] /. toBare];
+
+WeylFromMetricXAct[g_?TensQ] := Module[
+  {setup = xActMetricSetup[g], ch, cdSym, dim, sym, comps, toBare},
+  ch = setup["chart"]; cdSym = setup["cd"]; dim = setup["dim"];
+  toBare = setup["toBareSym"];
+  sym = xAct`xTensor`GiveSymbol[xAct`xTensor`Weyl, cdSym];
+  comps = xActExtractRank4[sym, ch, dim] /. toBare;
+  Tensor[Coords[g], {"down","down","down","down"},
+   comps, Components[g], Conventions[g]]];
+
+EinsteinFromMetricXAct[g_?TensQ] := Module[
+  {setup = xActMetricSetup[g], ch, cdSym, dim, sym, comps, toBare},
+  ch = setup["chart"]; cdSym = setup["cd"]; dim = setup["dim"];
+  toBare = setup["toBareSym"];
+  sym = xAct`xTensor`GiveSymbol[xAct`xTensor`Einstein, cdSym];
+  comps = xActExtractRank2[sym, ch, dim] /. toBare;
+  Tensor[Coords[g], {"down","down"},
+   comps, Components[g], Conventions[g]]];
+
+KretschmannFromMetricXAct[g_?TensQ] := Module[
+  {setup = xActMetricSetup[g], cdSym, sym, toBare},
+  cdSym = setup["cd"]; toBare = setup["toBareSym"];
+  sym = xAct`xTensor`GiveSymbol[xAct`xTensor`Kretschmann, cdSym];
+  xActExtractScalar[sym] /. toBare];
 
 End[];
 EndPackage[];

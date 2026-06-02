@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Shared Wolfram Language kernel harness for the mathematica-author skill.
+"""Shared Wolfram Language kernel harness for wolfram-core.
+
+Vendored into verify-math and wolfram-author (ADR-0007 / ADR-0009). The CLI, the
+JSON shape below, and the `--load` bundle names already in use (`ct`, `gr`, ...)
+are a FROZEN contract: verify-math's `_wolfram_run` and its escalation ladder
+depend on them. Internals may be refactored; the interface may not change.
 
 Runs a WL payload through `wolframscript` and prints one JSON object:
 
@@ -63,8 +68,10 @@ def _load_config() -> dict:
 
 
 def _resolve_ogre_path() -> str:
-    """Resolve OGRe .m path: MAUTHOR_OGRE_PATH env > config.json > default."""
-    env = os.environ.get("MAUTHOR_OGRE_PATH")
+    """Resolve OGRe .m path: WOLFRAM_CORE_OGRE_PATH / MAUTHOR_OGRE_PATH env >
+    config.json > default. MAUTHOR_OGRE_PATH is honored for back-compat with
+    existing wolfram-author configs."""
+    env = os.environ.get("WOLFRAM_CORE_OGRE_PATH") or os.environ.get("MAUTHOR_OGRE_PATH")
     if env:
         return env
     cfg = _load_config().get("ogre_path")
@@ -93,8 +100,17 @@ _LOADS = {
     ),
     # the skill's own curated library (canonical representation + EquivalentQ)
     "ct": f'Get["{LIB_DIR / "CT.wl"}"];',
-    # GR curvature operators; implies mauthor (loads it first).
+    # GR curvature operators; implies ct (loads it first).
     "grt": f'Get["{LIB_DIR / "CT.wl"}"];\nGet["{LIB_DIR / "GRT.wl"}"];',
+    # aliases used by bench.py and verify_bridge.py
+    "mauthor": f'Get["{LIB_DIR / "CT.wl"}"];',
+    "gr": f'Get["{LIB_DIR / "CT.wl"}"];\nGet["{LIB_DIR / "GRT.wl"}"];',
+    # xCoba component computation (extends xact with coordinate-basis tools)
+    "xcoba": (
+        "Quiet[Block[{$Output = {}, $Messages = {}},"
+        ' TimeConstrained[Needs["xAct`xTensor`"], 120];'
+        ' TimeConstrained[Needs["xAct`xCoba`"], 120]]];'
+    ),
 }
 
 # %%LOADS%% and %%PAYLOAD%% are substituted (not .format: WL is full of braces).

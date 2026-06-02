@@ -9,6 +9,16 @@ The library's curvature operators use these, and they match OGRe componentwise
 - **Riemann (mixed)**: `R^r_smn = d_m Gamma^r_ns - d_n Gamma^r_ms + Gamma^r_ml Gamma^l_ns - Gamma^r_nl Gamma^l_ms`.
 - **Riemann (lowered)**: `R_rsmn = g_ra R^a_smn`, index order `(rho sigma mu nu)`.
 - **Ricci**: `R_sn = R^m_smn`. **Ricci scalar**: `R = g^sn R_sn`.
+- **Weyl**: `C_{abcd} = R_{abcd} - (2/(D-2))(g_{a[c}R_{d]b} - g_{b[c}R_{d]a}) + (2/((D-1)(D-2))) R g_{a[c}g_{d]b}`.
+  Vanishes identically in D<=3. For conformally flat spaces (includes all maximally symmetric): C=0.
+  For vacuum (Ricci-flat): C = R (Weyl equals Riemann).
+- **Einstein**: `G_{mu nu} = R_{mu nu} - (1/2) R g_{mu nu}`.
+  Trace: `g^{mn} G_{mn} = -(D-2)/2 R`. For vacuum without cosmological constant: G=0.
+- **Traceless Ricci**: `S_{mu nu} = R_{mu nu} - (1/D) R g_{mu nu}`.
+  Trace: `g^{mn} S_{mn} = 0` by construction.
+- **Killing equation**: `nabla_(mu) xi_(nu) + nabla_(nu) xi_(mu) = 0`, or in Christoffel form:
+  `d_mu xi_nu + d_nu xi_mu - 2 Gamma^a_{mu nu} xi_a = 0`.
+  D(D+1)/2 independent equations for D unknown functions.
 
 Convention-independent invariants for a maximally symmetric space (curvature
 radius L, dimension D) — use as sanity checks:

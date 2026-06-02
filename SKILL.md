@@ -119,13 +119,20 @@ Contract[t1, i, t2, j]       (* contract index i of t1 with j of t2 *)
 Transform[t, newCoords, rules]  (* coord transform; rules = backward map *)
 ```
 
-**GR operations** — `lib/GRT.wl` covariant derivative and geodesics (use cached
-Christoffels):
+**GR operations** — `lib/GRT.wl` curvature decomposition, covariant derivative, geodesics,
+and symmetry analysis (use cached Christoffels):
 
 ```
+WeylFromMetric[g]              (* Weyl (conformal) tensor C_{rho sigma mu nu} *)
+EinsteinFromMetric[g]          (* Einstein tensor G_{mu nu} = R_{mu nu} - (1/2)R g *)
+TracelessRicciFromMetric[g]    (* traceless Ricci S_{mu nu} = R_{mu nu} - (1/D)R g *)
+KillingEquationsFromMetric[g]  (* Killing equation PDE system as {eq1==0, ...} *)
 CovariantDFromMetric[t, g]     (* nabla of t w.r.t. metric g; prepends down index *)
 GeodesicEquationsFromMetric[g] (* geodesic ODEs; coords -> functions of lambda *)
 ```
+
+Each GR function has a built-in array implementation and cross-checks via OGRe
+(`*OGRe`) and xAct/xCoba (`*XAct`). The xAct adapters require `--load xcoba`.
 
 **Cache** — `CacheClear[]` resets the shared cache (inverse metrics +
 Christoffels). Christoffel computation is shared across `ChristoffelFromMetric`,
