@@ -49,6 +49,21 @@ cell sequence), not a bare answer. It must:
 
 The answer itself is a byproduct — always give the user the code that produced it.
 
+## Notebook (.nb) output
+
+`.nb` files are read-only display artifacts; all computation happens in `.wl`
+files. When generating a `.nb`, optimize for visual clarity:
+
+- **Notebook-level options**: `DefaultOutputFormatType -> TraditionalForm`,
+  `DefaultNewCellStyle -> "Input"`, `StyleDefinitions -> "Default.nb"`.
+- **Named characters** for Greek coordinates: `\[Theta]`, `\[Phi]`, etc.
+- **No Print for results.** Use `Column`/`Row`/`Grid` so output goes to Output
+  cells where TraditionalForm applies. Print produces plain-text cells that
+  bypass TraditionalForm. Print is acceptable only for status messages and
+  per-operation timing lines.
+- **Typeset math in labels** via `HoldForm[Subsuperscript[...]]`, etc.
+- **MatrixForm** for component display: `expr // MatrixForm`.
+
 ## Per-request workflow
 
 1. **Restate** the request and fix conventions (metric signature, index ordering,

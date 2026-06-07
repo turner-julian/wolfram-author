@@ -38,9 +38,10 @@ schwRicci = GR`Ricci[gSchw];\n\
 schwRicciScalar = GR`RicciScalar[gSchw];\n\
 adsRiem = GR`Riemann[gAdS];\n\
 adsRicci = GR`Ricci[gAdS];\n\
-Print[\"Curvature precomputed.\"];\n\
-Print[\"Schwarzschild R = \", schwRicciScalar, \"  (expect 0)\"];\n\
-Print[\"AdS4 R = \", GR`RicciScalar[gAdS], \"  (expect -12/L^2)\"]", "Input"],
+Column[{\n\
+  Row[{\"Schwarzschild R = \", schwRicciScalar}],\n\
+  Row[{\"AdS4 R = \", GR`RicciScalar[gAdS]}]\n\
+}]", "Input"],
 
 (* ===================================================================== *)
 Cell["1. Index Raising & Lowering", "Section"],
@@ -50,24 +51,27 @@ then lower it back. The round-trip must recover the original components.", "Text
 
 Cell["(* Raise first index: R_{rho sigma mu nu} -> R^rho_{sigma mu nu} *)\n\
 schwRiemUp = Tensor`Raise[schwRiem, 1, gSchw];\n\
-Print[\"Original indices: \", Tensor`Indices[schwRiem]];\n\
-Print[\"Raised indices:  \", Tensor`Indices[schwRiemUp]];\n\
 \n\
 (* Round-trip: lower it back *)\n\
 schwRiemRT = Tensor`Lower[schwRiemUp, 1, gSchw];\n\
-Print[\"Round-trip correct: \",\n\
-  Core`EquivalentQ[Tensor`Components[schwRiemRT],\n\
-    Tensor`Components[schwRiem]]]", "Input"],
+Column[{\n\
+  Row[{\"Original indices: \", Tensor`Indices[schwRiem]}],\n\
+  Row[{\"Raised indices:   \", Tensor`Indices[schwRiemUp]}],\n\
+  Row[{\"Round-trip correct: \",\n\
+    Core`EquivalentQ[Tensor`Components[schwRiemRT],\n\
+      Tensor`Components[schwRiem]]}]\n\
+}]", "Input"],
 
 Cell["(* AdS4: the mixed Ricci R^mu_nu should be -(D-1)/L^2 delta^mu_nu *)\n\
 (* For D=4: R^mu_nu = -3/L^2 delta^mu_nu *)\n\
 adsRicciUp = Tensor`Raise[adsRicci, 1, gAdS];\n\
-Print[\"R^mu_nu (AdS4):\"];\n\
-Tensor`Components[adsRicciUp] // MatrixForm\n", "Input"],
+Tensor`Components[adsRicciUp] // MatrixForm", "Input"],
 
-Cell["Print[\"R^mu_nu == -3/L^2 IdentityMatrix: \",\n\
+Cell["Column[{\n\
+  HoldForm[Subsuperscript[R, \[Nu], \[Mu]] == -(3/Superscript[L, 2]) Subscript[\[DoubleStruckCapitalI], 4]],\n\
   Core`EquivalentQ[Tensor`Components[adsRicciUp],\n\
-    -3/L^2 IdentityMatrix[4]]]", "Input"],
+    -3/L^2 IdentityMatrix[4]]\n\
+}]", "Input"],
 
 Cell["(* Timing *)\n\
 tRaise = First@RepeatedTiming[Tensor`Raise[schwRiem, 1, gSchw]];\n\
@@ -81,18 +85,22 @@ Cell["2. Trace (Contraction of Two Indices)", "Section"],
 Cell["Contract R^m_{sigma m nu} (indices 1 and 3) to recover the Ricci tensor.", "Text"],
 
 Cell["ricciFromTrace = Tensor`Trc[schwRiemUp, {1, 3}];\n\
-Print[\"Trace R^m_smn == Ricci: \",\n\
-  Core`EquivalentQ[Tensor`Components[ricciFromTrace],\n\
-    Tensor`Components[schwRicci]]];\n\
-Print[\"Result indices: \", Tensor`Indices[ricciFromTrace]]", "Input"],
+Column[{\n\
+  Row[{\"Trace \", HoldForm[Subsuperscript[R, Row[{\"\[Sigma]\", \"m\", \"\[Nu]\"}], \"m\"]], \" == Ricci: \",\n\
+    Core`EquivalentQ[Tensor`Components[ricciFromTrace],\n\
+      Tensor`Components[schwRicci]]}],\n\
+  Row[{\"Result indices: \", Tensor`Indices[ricciFromTrace]}]\n\
+}]", "Input"],
 
 Cell["Trace the mixed AdS Ricci R^mu_mu to get the Ricci scalar.", "Text"],
 
 Cell["ricciScalarFromTrace = Tensor`Trc[adsRicciUp, {1, 2}];\n\
 ricciScalarDirect = GR`RicciScalar[gAdS];\n\
-Print[\"Trace R^mu_mu = \", ricciScalarFromTrace];\n\
-Print[\"Direct R      = \", ricciScalarDirect];\n\
-Print[\"Agree: \", Core`EquivalentQ[ricciScalarFromTrace, ricciScalarDirect]]", "Input"],
+Column[{\n\
+  Row[{\"Trace \", HoldForm[Subsuperscript[R, \"\[Mu]\", \"\[Mu]\"]], \" = \", ricciScalarFromTrace}],\n\
+  Row[{\"Direct R = \", ricciScalarDirect}],\n\
+  Row[{\"Agree: \", Core`EquivalentQ[ricciScalarFromTrace, ricciScalarDirect]}]\n\
+}]", "Input"],
 
 Cell["(* Timing *)\n\
 tTrace = First@RepeatedTiming[Tensor`Trc[schwRiemUp, {1, 3}]];\n\
@@ -109,18 +117,21 @@ wDown = Tensor`Field[schwCoords, {\"down\"}, {-schwF, 0, 0, 0}, schwGdown, <||>]
 \n\
 (* Outer product: rank-2 mixed tensor *)\n\
 vw = Tensor`Prod[vUp, wDown];\n\
-Print[\"Product rank: \", Tensor`Rank[vw]];\n\
-Print[\"Product indices: \", Tensor`Indices[vw]];\n\
-Print[\"Product components:\"];\n\
-Tensor`Components[vw] // MatrixForm", "Input"],
+Column[{\n\
+  Row[{\"Product rank: \", Tensor`Rank[vw]}],\n\
+  Row[{\"Product indices: \", Tensor`Indices[vw]}],\n\
+  Tensor`Components[vw] // MatrixForm\n\
+}]", "Input"],
 
 Cell["(* Trace the product: v^mu w_mu *)\n\
 scalar = Tensor`Trc[vw, {1, 2}];\n\
-Print[\"v^mu w_mu = \", scalar, \"  (expect -(1-2M/r))\"];\n\
 \n\
 (* Contract does the same in one call *)\n\
 scalarDirect = Tensor`Contract[vUp, 1, wDown, 1];\n\
-Print[\"Contract agrees: \", Core`EquivalentQ[scalar, scalarDirect]]", "Input"],
+Column[{\n\
+  Row[{HoldForm[Superscript[v, \"\[Mu]\"] Subscript[w, \"\[Mu]\"]], \" = \", scalar}],\n\
+  Row[{\"Contract agrees: \", Core`EquivalentQ[scalar, scalarDirect]}]\n\
+}]", "Input"],
 
 (* ===================================================================== *)
 Cell["4. Coordinate Transformation", "Section"],
@@ -132,8 +143,6 @@ Cell["efCoords = {v, r, \[Theta], \[Phi]};\n\
 efRules = {t -> v - r - 2 M Log[r/(2 M) - 1]};\n\
 \n\
 gEF = Tensor`Transform[gSchw, efCoords, efRules];\n\
-\n\
-Print[\"Eddington-Finkelstein metric:\"];\n\
 Tensor`Components[gEF] // MatrixForm", "Input"],
 
 Cell["(* Known EF metric: ds^2 = -(1-2M/r) dv^2 + 2 dv dr + r^2 dOmega^2 *)\n\
@@ -143,8 +152,8 @@ gEFexpected = {\n\
   {0, 0, r^2, 0},\n\
   {0, 0, 0, r^2 Sin[\[Theta]]^2}};\n\
 \n\
-Print[\"Matches known EF metric: \",\n\
-  Core`EquivalentQ[Tensor`Components[gEF], gEFexpected]]", "Input"],
+Row[{\"Matches known EF metric: \",\n\
+  Core`EquivalentQ[Tensor`Components[gEF], gEFexpected]}]", "Input"],
 
 Cell["Transform a 2D flat metric from Cartesian to polar coordinates.", "Text"],
 
@@ -153,11 +162,12 @@ Cell["gFlat2 = Tensor`Field[{xx, yy}, {\"down\", \"down\"},\n\
 gPolar = Tensor`Transform[gFlat2, {rr, \[Psi]},\n\
   {xx -> rr Cos[\[Psi]], yy -> rr Sin[\[Psi]]}];\n\
 \n\
-Print[\"Polar metric:\"];\n\
-Tensor`Components[gPolar] // MatrixForm\n\
-Print[\"== diag(1, r^2): \",\n\
-  Core`EquivalentQ[Tensor`Components[gPolar],\n\
-    DiagonalMatrix[{1, rr^2}]]]", "Input"],
+Column[{\n\
+  Tensor`Components[gPolar] // MatrixForm,\n\
+  Row[{\"== diag(1, \", HoldForm[Superscript[r, 2]], \"): \",\n\
+    Core`EquivalentQ[Tensor`Components[gPolar],\n\
+      DiagonalMatrix[{1, rr^2}]]}]\n\
+}]", "Input"],
 
 Cell["(* Timing *)\n\
 tTransform = First@RepeatedTiming[\n\
@@ -171,10 +181,12 @@ Cell["Schwarzschild is vacuum: R_{mu nu} = 0, so the covariant derivative \
 of the Ricci tensor must vanish identically.", "Text"],
 
 Cell["nablaRicci = GR`CovariantD[schwRicci, gSchw];\n\
-Print[\"Indices of nabla R: \", Tensor`Indices[nablaRicci]];\n\
-Print[\"nabla_alpha R_{mu nu} == 0 (vacuum): \",\n\
-  Core`EquivalentQ[Tensor`Components[nablaRicci],\n\
-    ConstantArray[0, {4, 4, 4}]]]", "Input"],
+Column[{\n\
+  Row[{\"Indices of \", HoldForm[Subscript[\"\[Del]\", \"\[Alpha]\"] Subscript[R, Row[{\"\[Mu]\", \"\[Nu]\"}]]], \": \", Tensor`Indices[nablaRicci]}],\n\
+  Row[{HoldForm[Subscript[\"\[Del]\", \"\[Alpha]\"] Subscript[R, Row[{\"\[Mu]\", \"\[Nu]\"}]]], \" == 0 (vacuum): \",\n\
+    Core`EquivalentQ[Tensor`Components[nablaRicci],\n\
+      ConstantArray[0, {4, 4, 4}]]}]\n\
+}]", "Input"],
 
 Cell["Covariant derivative of a scalar field phi = L^2/z^2 on AdS4. \
 For a scalar, this is just the partial derivative (gradient).", "Text"],
@@ -182,11 +194,12 @@ For a scalar, this is just the partial derivative (gradient).", "Text"],
 Cell["phi = Tensor`Field[adsCoords, {}, L^2/z^2, adsGdown, <||>];\n\
 dPhi = GR`CovariantD[phi, gAdS];\n\
 \n\
-Print[\"nabla phi components: \", Tensor`Components[dPhi]];\n\
-Print[\"d_z phi = \", Tensor`Components[dPhi][[4]],\n\
-  \"  (expect -2 L^2/z^3)\"];\n\
-Print[\"Correct: \",\n\
-  Core`EquivalentQ[Tensor`Components[dPhi][[4]], -2 L^2/z^3]]", "Input"],
+Column[{\n\
+  Row[{\"\[Del]\[Phi] components: \", Tensor`Components[dPhi]}],\n\
+  Row[{HoldForm[Subscript[\"\[PartialD]\", z] \"\[Phi]\"], \" = \", Tensor`Components[dPhi][[4]]}],\n\
+  Row[{\"Correct: \",\n\
+    Core`EquivalentQ[Tensor`Components[dPhi][[4]], -2 L^2/z^3]}]\n\
+}]", "Input"],
 
 Cell["Covariant derivative of a vector field on AdS4. Here the Gamma \
 corrections are nontrivial.", "Text"],
@@ -194,9 +207,10 @@ corrections are nontrivial.", "Text"],
 Cell["(* Take the covariant derivative of the coordinate basis vector d/dz *)\n\
 eZ = Tensor`Field[adsCoords, {\"up\"}, {0, 0, 0, 1}, adsGdown, <||>];\n\
 nablaEZ = GR`CovariantD[eZ, gAdS];\n\
-Print[\"nabla_mu (d/dz) indices: \", Tensor`Indices[nablaEZ]];\n\
-Print[\"nabla_mu (d/dz) components:\"];\n\
-Tensor`Components[nablaEZ] // MatrixForm", "Input"],
+Column[{\n\
+  Row[{HoldForm[Subscript[\"\[Del]\", \"\[Mu]\"] \"(\[PartialD]/\[PartialD]z)\"], \" indices: \", Tensor`Indices[nablaEZ]}],\n\
+  Tensor`Components[nablaEZ] // MatrixForm\n\
+}]", "Input"],
 
 Cell["(* Timing *)\n\
 tCovD = First@RepeatedTiming[\n\
@@ -209,12 +223,11 @@ Cell["6. Geodesic Equations", "Section"],
 Cell["Schwarzschild geodesics: 4 second-order ODEs.", "Text"],
 
 Cell["geod = GR`Geodesic[gSchw, \[Lambda]];\n\
-Print[\"Number of geodesic equations: \", Length[geod]];\n\
-\n\
-Do[\n\
-  Print[\"\\n\", schwCoords[[i]], \" geodesic:\"];\n\
-  Print[\"  \", geod[[i]], \" = 0\"],\n\
-  {i, 4}]", "Input"],
+Column[\n\
+  Prepend[\n\
+    Table[Column[{Style[schwCoords[[i]], Bold], Row[{geod[[i]], \" = 0\"}]}], {i, 4}],\n\
+    Row[{\"Geodesic equations: \", Length[geod]}]\n\
+  ], Spacings -> 1]", "Input"],
 
 Cell["The t-equation should give conservation of energy: \
 d/dlambda[(1-2M/r) dt/dlambda] = 0, which expands to \
@@ -250,23 +263,27 @@ tWarm = First@AbsoluteTiming[\n\
     cd = GR`CovariantD[rc, gSchw];\n\
     \"done\"]];\n\
 \n\
-Print[\"Cold (no cache): \", 1000 tCold, \" ms\"];\n\
-Print[\"Warm (cached):   \", 1000 tWarm, \" ms\"];\n\
-Print[\"Speedup:         \", tCold/tWarm, \"x\"]", "Input"],
+Column[{\n\
+  Row[{\"Cold (no cache): \", 1000 tCold, \" ms\"}],\n\
+  Row[{\"Warm (cached):   \", 1000 tWarm, \" ms\"}],\n\
+  Row[{\"Speedup:         \", tCold/tWarm, \"x\"}]\n\
+}]", "Input"],
 
 (* ===================================================================== *)
 Cell["8. Summary", "Section"],
 
-Cell["Print[\"\\n===== TIMING SUMMARY (Schwarzschild, D=4) =====\"];\n\
-Print[\"Raise index:       \", 1000 tRaise, \" ms\"];\n\
-Print[\"Lower index:       \", 1000 tLower, \" ms\"];\n\
-Print[\"Trace:             \", 1000 tTrace, \" ms\"];\n\
-Print[\"Coord transform:   \", 1000 tTransform, \" ms\"];\n\
-Print[\"Covariant deriv:   \", 1000 tCovD, \" ms\"];\n\
-Print[\"Geodesic eqs:      \", 1000 tGeod, \" ms\"];\n\
-Print[\"Cache cold/warm:   \", 1000 tCold, \"/\", 1000 tWarm,\n\
-  \" ms  (\", tCold/tWarm, \"x)\"];\n\
-Print[\"\\nAll operations sub-millisecond on Schwarzschild D=4.\"]", "Input"]
+Cell["Column[{\n\
+  Style[\"TIMING SUMMARY (Schwarzschild, D=4)\", Bold],\n\
+  Grid[{\n\
+    {\"Raise index\", Row[{1000 tRaise, \" ms\"}]},\n\
+    {\"Lower index\", Row[{1000 tLower, \" ms\"}]},\n\
+    {\"Trace\", Row[{1000 tTrace, \" ms\"}]},\n\
+    {\"Coord transform\", Row[{1000 tTransform, \" ms\"}]},\n\
+    {\"Covariant deriv\", Row[{1000 tCovD, \" ms\"}]},\n\
+    {\"Geodesic eqs\", Row[{1000 tGeod, \" ms\"}]},\n\
+    {\"Cache cold/warm\", Row[{1000 tCold, \"/\", 1000 tWarm, \" ms  (\", tCold/tWarm, \"x)\"}]}\n\
+  }, Alignment -> Left, Spacings -> {2, 0.5}]\n\
+}]", "Input"]
 
 },
 WindowSize -> {900, 800},
