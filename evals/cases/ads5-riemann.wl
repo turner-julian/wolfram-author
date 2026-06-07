@@ -30,14 +30,14 @@ Get[FileNameJoin[{ParentDirectory[ParentDirectory[
 coords = {t, x1, x2, x3, z};
 $Assumptions = L > 0 && z > 0;
 gComponents = (L^2/z^2) DiagonalMatrix[{-1, 1, 1, 1, 1}];
-g = CT`Tensor[coords, {"down", "down"}, gComponents, Automatic,
+g = Tensor`Field[coords, {"down", "down"}, gComponents, Automatic,
    <|"signature" -> "mostly-plus", "spacetime" -> "AdS5 Poincare"|>];
 
 (* --- curvature, composed from library primitives (full context prefixes) -- *)
-riem = GRT`RiemannFromMetric[g];          (* R_{rho sigma mu nu}, all down *)
-ricci = GRT`RicciFromMetric[g];           (* R_{mu nu} *)
-ricciScalar = GRT`RicciScalarFromMetric[g];
-kretschmann = GRT`KretschmannFromMetric[g];
+riem = GR`Riemann[g];          (* R_{rho sigma mu nu}, all down *)
+ricci = GR`Ricci[g];           (* R_{mu nu} *)
+ricciScalar = GR`RicciScalar[g];
+kretschmann = GR`Kretschmann[g];
 
 Print["Ricci scalar R = ", ricciScalar, "   (expect -20/L^2)"];
 Print["Kretschmann  K = ", kretschmann, "   (expect 40/L^4)"];
@@ -50,11 +50,11 @@ maxSymRiemann = Table[
 
 checks = <|
    "Riemann == maximally-symmetric form"
-     -> CT`EquivalentQ[CT`Components[riem], maxSymRiemann],
+     -> Core`EquivalentQ[Tensor`Components[riem], maxSymRiemann],
    "Ricci == -(4/L^2) g"
-     -> CT`EquivalentQ[CT`Components[ricci], -(4/L^2) gComponents],
-   "Ricci scalar == -20/L^2" -> CT`EquivalentQ[ricciScalar, -20/L^2],
-   "Kretschmann == 40/L^4" -> CT`EquivalentQ[kretschmann, 40/L^4]
+     -> Core`EquivalentQ[Tensor`Components[ricci], -(4/L^2) gComponents],
+   "Ricci scalar == -20/L^2" -> Core`EquivalentQ[ricciScalar, -20/L^2],
+   "Kretschmann == 40/L^4" -> Core`EquivalentQ[kretschmann, 40/L^4]
 |>;
 
 Print["\nSanity checks:"];

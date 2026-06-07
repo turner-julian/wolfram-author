@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Code-generation eval harness for the mathematica-author skill.
+"""Code-generation eval harness for the wolfram-author skill.
 
 The skill's product is a runnable, documented Wolfram script. The honest way to
 grade such a product is NOT an LLM judge but the same machine checks the skill
@@ -16,7 +16,7 @@ of machine-checkable `assertions`. Three assertion kinds:
                 result equals `expect` (default "True"). For boolean invariants,
                 e.g. EquivalentQ[riem, maximally-symmetric-form].
   * "scalar" -- evaluate `wl` in the script's context to get a scalar literal,
-                then confirm `CT`EquivalentQ[literal, expect]` is True in a
+                then confirm `Core`EquivalentQ[literal, expect]` is True in a
                 clean kernel. Wolfram-only (EquivalentQ does PossibleZeroQ ->
                 FullSimplify -> numeric spot-check). verify_bridge.py is still on
                 disk for opt-in cross-engine work, but the grader never calls it.
@@ -101,11 +101,11 @@ def _check_assertion(script: Path, a: dict, loads: list[str], timeout: float) ->
                     "detail": f"could not extract scalar: status={r['status']} "
                               f"head={r['head']} result={r['result']}"}
         literal = r["result"]
-        # Then decide equality with EquivalentQ in a clean mauthor-only kernel.
+        # Then decide equality with EquivalentQ in a clean core-only kernel.
         # Wolfram alone; no SymPy. EquivalentQ returns True / False / $Failed --
         # only an explicit True passes (undecided fails honestly).
-        chk = wolfram.run(f"CT`EquivalentQ[({literal}),({expect})]",
-                          loads=["ct"], timeout=timeout)
+        chk = wolfram.run(f"Core`EquivalentQ[({literal}),({expect})]",
+                          loads=["core"], timeout=timeout)
         passed = chk["status"] == "ok" and chk["result"] == "True"
         return {"desc": desc, "passed": passed,
                 "detail": f"value={literal} expect={expect} "
@@ -172,7 +172,7 @@ def _cmd_selftest(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="mathematica-author code-gen eval harness.")
+    parser = argparse.ArgumentParser(description="wolfram-author code-gen eval harness.")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_run = sub.add_parser("run", help="grade one case file")

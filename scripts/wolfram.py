@@ -98,13 +98,21 @@ _LOADS = {
         "Quiet[Block[{$Output = {}, $Messages = {}},"
         ' TimeConstrained[Needs["xAct`xTensor`"], 120]]];'
     ),
-    # the skill's own curated library (canonical representation + EquivalentQ)
-    "ct": f'Get["{LIB_DIR / "CT.wl"}"];',
-    # GR curvature operators; implies ct (loads it first).
-    "grt": f'Get["{LIB_DIR / "CT.wl"}"];\nGet["{LIB_DIR / "GRT.wl"}"];',
-    # aliases used by bench.py and verify_bridge.py
-    "mauthor": f'Get["{LIB_DIR / "CT.wl"}"];',
-    "gr": f'Get["{LIB_DIR / "CT.wl"}"];\nGet["{LIB_DIR / "GRT.wl"}"];',
+    # core substrate (EquivalentQ, conventions, cache)
+    "core": f'Get["{LIB_DIR / "core.wl"}"];',
+    # tensor algebra; implies core (loads it first).
+    "tensor": f'Get["{LIB_DIR / "core.wl"}"];\nGet["{LIB_DIR / "tensor.wl"}"];',
+    # GR curvature; implies core + tensor (loads them first).
+    "gr": (f'Get["{LIB_DIR / "core.wl"}"];\n'
+           f'Get["{LIB_DIR / "tensor.wl"}"];\nGet["{LIB_DIR / "gr.wl"}"];'),
+    # QEC discipline (finite-dim operators); implies core.
+    "qec": f'Get["{LIB_DIR / "core.wl"}"];\nGet["{LIB_DIR / "qec.wl"}"];',
+    # universal soundness core (slDecide: assertion + Gamma -> tier); built-ins only.
+    "decide": f'Get["{LIB_DIR / "decide.wl"}"];',
+    # whole-derivation object-flow walker (slVerifyDerivation); implies decide.
+    "derivation": (f'Get["{LIB_DIR / "decide.wl"}"];\n'
+                   f'Get["{LIB_DIR / "derivation.wl"}"];'),
+    # (legacy ct/grt/mauthor bundles removed; CT.wl/GRT.wl deleted, wolfram-author out)
     # xCoba component computation (extends xact with coordinate-basis tools)
     "xcoba": (
         "Quiet[Block[{$Output = {}, $Messages = {}},"

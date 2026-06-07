@@ -39,13 +39,13 @@ coords = {t, r, th, ph};
 $Assumptions = M > 0 && r > 2 M && th > 0 && th < Pi;
 f = 1 - 2 M/r;
 gdown = DiagonalMatrix[{-f, 1/f, r^2, r^2 Sin[th]^2}];
-g = CT`Tensor[coords, {"down", "down"}, gdown, Automatic,
+g = Tensor`Field[coords, {"down", "down"}, gdown, Automatic,
    <|"signature" -> "mostly-plus", "spacetime" -> "Schwarzschild"|>];
 
 (* precompute so timing isn't polluted by first-call overhead *)
-CT`CacheClear[];
-riem = GRT`RiemannFromMetric[g];
-ricci = GRT`RicciFromMetric[g];
+Core`CacheClear[];
+riem = GR`Riemann[g];
+ricci = GR`Ricci[g];
 Print["Schwarzschild curvature computed."];
 
 (* --- OGRe setup --------------------------------------------------------- *)
@@ -65,13 +65,13 @@ Print["OGRe curvature computed.\n"];
 (* ===== 1. INDEX RAISING ================================================= *)
 Print["=== 1. Raise first index of Riemann ==="];
 tBuiltinRaise = First@RepeatedTiming[
-  CT`Raise[riem, 1, g]];
+  Tensor`Raise[riem, 1, g]];
 tOGReRaise = First@RepeatedTiming[
   OGRe`TGetComponents[ogreRiem, {1, -1, -1, -1}, ogreID <> "C"]];
 (* correctness *)
-builtinRaised = CT`Components[CT`Raise[riem, 1, g]];
+builtinRaised = Tensor`Components[Tensor`Raise[riem, 1, g]];
 ogreRaised = OGRe`TGetComponents[ogreRiem, {1, -1, -1, -1}, ogreID <> "C"];
-raiseAgree = CT`EquivalentQ[builtinRaised, ogreRaised];
+raiseAgree = Core`EquivalentQ[builtinRaised, ogreRaised];
 Print["  built-in: ", NumberForm[tBuiltinRaise, {6, 5}], " s"];
 Print["  OGRe:     ", NumberForm[tOGReRaise, {6, 5}], " s"];
 Print["  speedup:  ", NumberForm[tOGReRaise/tBuiltinRaise, {4, 1}], "x"];
@@ -79,30 +79,30 @@ Print["  agree:    ", raiseAgree];
 
 (* ===== 2. INDEX LOWERING (round-trip) ==================================== *)
 Print["\n=== 2. Lower it back (round-trip) ==="];
-raised = CT`Raise[riem, 1, g];
+raised = Tensor`Raise[riem, 1, g];
 tBuiltinLower = First@RepeatedTiming[
-  CT`Lower[raised, 1, g]];
+  Tensor`Lower[raised, 1, g]];
 tOGReLower = First@RepeatedTiming[
   Block[{$Output = {}}, OGRe`TGetComponents[ogreRiem, {-1, -1, -1, -1}, ogreID <> "C"]]];
-lowerRT = CT`EquivalentQ[
-  CT`Components[CT`Lower[raised, 1, g]],
-  CT`Components[riem]];
+lowerRT = Core`EquivalentQ[
+  Tensor`Components[Tensor`Lower[raised, 1, g]],
+  Tensor`Components[riem]];
 Print["  built-in: ", NumberForm[tBuiltinLower, {6, 5}], " s"];
 Print["  OGRe:     ", NumberForm[tOGReLower, {6, 5}], " s"];
 Print["  round-trip correct: ", lowerRT];
 
 (* ===== 3. TRACE (Riemann -> Ricci) ======================================= *)
 Print["\n=== 3. Trace R^m_{sigma m nu} -> Ricci ==="];
-riemUp = CT`Raise[riem, 1, g];
+riemUp = Tensor`Raise[riem, 1, g];
 tBuiltinTrace = First@RepeatedTiming[
-  CT`Trc[riemUp, {1, 3}]];
+  Tensor`Trc[riemUp, {1, 3}]];
 (* OGRe: already did TCalcRicciTensor; time getting components *)
 tOGReTrace = First@RepeatedTiming[
   OGRe`TGetComponents[ogreRicci, {-1, -1}, ogreID <> "C"]];
-traceResult = CT`Trc[riemUp, {1, 3}];
-traceAgree = CT`EquivalentQ[
-  CT`Components[traceResult],
-  CT`Components[ricci]];
+traceResult = Tensor`Trc[riemUp, {1, 3}];
+traceAgree = Core`EquivalentQ[
+  Tensor`Components[traceResult],
+  Tensor`Components[ricci]];
 Print["  built-in: ", NumberForm[tBuiltinTrace, {6, 5}], " s"];
 Print["  OGRe:     ", NumberForm[tOGReTrace, {6, 5}], " s"];
 Print["  trace == Ricci: ", traceAgree];
@@ -115,13 +115,13 @@ efCoords = {v, r, th, ph};
 efRules = {t -> v - r - 2 M Log[r/(2 M) - 1]};
 
 tBuiltinTransform = First@RepeatedTiming[
-  CT`Transform[g, efCoords, efRules]];
+  Tensor`Transform[g, efCoords, efRules]];
 
 (* Verify against the known EF metric *)
 efExpected = {{-(1 - 2 M/r), 1, 0, 0}, {1, 0, 0, 0},
   {0, 0, r^2, 0}, {0, 0, 0, r^2 Sin[th]^2}};
-builtinEF = CT`Components[CT`Transform[g, efCoords, efRules]];
-transformAgree = CT`EquivalentQ[builtinEF, efExpected];
+builtinEF = Tensor`Components[Tensor`Transform[g, efCoords, efRules]];
+transformAgree = Core`EquivalentQ[builtinEF, efExpected];
 
 (* OGRe coordinate transforms trigger $Aborted in headless mode
    (progress-indicator channel conflict), so we skip the OGRe timing here
@@ -133,13 +133,13 @@ Print["  matches known EF metric: ", transformAgree];
 (* ===== 5. COVARIANT DERIVATIVE ========================================== *)
 Print["\n=== 5. Covariant derivative of Ricci tensor ==="];
 tBuiltinCovD = First@RepeatedTiming[
-  GRT`CovariantDFromMetric[ricci, g]];
+  GR`CovariantD[ricci, g]];
 
 (* OGRe comparison skipped: TNewTensor triggers the progress-channel
    $Aborted in headless mode. Verify instead via physics: Schwarzschild
    is vacuum (R_{mu nu} = 0), so nabla_alpha R_{mu nu} = 0. *)
-builtinCovD = CT`Components[GRT`CovariantDFromMetric[ricci, g]];
-covDZero = CT`EquivalentQ[builtinCovD, ConstantArray[0, {4, 4, 4}]];
+builtinCovD = Tensor`Components[GR`CovariantD[ricci, g]];
+covDZero = Core`EquivalentQ[builtinCovD, ConstantArray[0, {4, 4, 4}]];
 Print["  built-in: ", NumberForm[tBuiltinCovD, {6, 5}], " s"];
 Print["  OGRe:     (skipped: headless progress-channel conflict)"];
 Print["  nabla R_{mu nu} == 0 (vacuum): ", covDZero];
@@ -147,8 +147,8 @@ Print["  nabla R_{mu nu} == 0 (vacuum): ", covDZero];
 (* ===== 6. GEODESIC EQUATIONS ============================================ *)
 Print["\n=== 6. Geodesic equations ==="];
 tBuiltinGeod = First@RepeatedTiming[
-  GRT`GeodesicEquationsFromMetric[g, \[Lambda]]];
-builtinGeod = GRT`GeodesicEquationsFromMetric[g, \[Lambda]];
+  GR`Geodesic[g, \[Lambda]]];
+builtinGeod = GR`Geodesic[g, \[Lambda]];
 geodCount = Length[builtinGeod] == 4;
 (* Verify: the t-geodesic for Schwarzschild should contain (1-2M/r) dt/dlambda *)
 geodHasLapse = ! FreeQ[builtinGeod[[1]], 1 - 2 M/r[\[Lambda]]];
@@ -158,20 +158,20 @@ Print["  4 equations: ", geodCount, "  contains lapse: ", geodHasLapse];
 
 (* ===== 7. CACHING: cold vs warm pipeline ================================ *)
 Print["\n=== 7. Caching: full pipeline cold vs warm ==="];
-CT`CacheClear[];
+Core`CacheClear[];
 tCold = First@AbsoluteTiming[
   Module[{ch, ri, rc, cd},
-    ch = GRT`ChristoffelFromMetric[g];
-    ri = GRT`RiemannFromMetric[g];
-    rc = GRT`RicciFromMetric[g];
-    cd = GRT`CovariantDFromMetric[rc, g];
+    ch = GR`Christoffel[g];
+    ri = GR`Riemann[g];
+    rc = GR`Ricci[g];
+    cd = GR`CovariantD[rc, g];
     "done"]];
 tWarm = First@AbsoluteTiming[
   Module[{ch, ri, rc, cd},
-    ch = GRT`ChristoffelFromMetric[g];
-    ri = GRT`RiemannFromMetric[g];
-    rc = GRT`RicciFromMetric[g];
-    cd = GRT`CovariantDFromMetric[rc, g];
+    ch = GR`Christoffel[g];
+    ri = GR`Riemann[g];
+    rc = GR`Ricci[g];
+    cd = GR`CovariantD[rc, g];
     "done"]];
 Print["  cold (no cache): ", NumberForm[tCold, {6, 4}], " s"];
 Print["  warm (cached):   ", NumberForm[tWarm, {6, 4}], " s"];

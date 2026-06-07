@@ -16,7 +16,7 @@
    does AdS_4; to change dimension, edit `coords` and `eta` below -- nothing
    else is dimension-specific.)
 
-   Conventions (see lib/index.json):
+   Conventions (see lib/registry.json):
      Christoffel  Gamma^a_bc = 1/2 g^as (d_b g_sc + d_c g_sb - d_s g_bc)
      Riemann      R^r_smn = d_m Gamma^r_ns - d_n Gamma^r_ms + Gamma^r_ml Gamma^l_ns - Gamma^r_nl Gamma^l_ms
      lowered      R_rsmn = g_ra R^a_smn
@@ -30,35 +30,33 @@
    Run:  wolframscript -file ads-poincare-riemann.wl
    ============================================================================ *)
 
-(* --- load the curated library (canonical representation + GR operators) --- *)
-libDir = FileNameJoin[{ParentDirectory[DirectoryName[$InputFileName]], "lib"}];
-Get[FileNameJoin[{libDir, "CT.wl"}]];
-Get[FileNameJoin[{libDir, "GRT.wl"}]];
+(* --- load the curated library (Core + Tensor + GR) --- *)
+Get[FileNameJoin[{ParentDirectory[DirectoryName[$InputFileName]], "init.wl"}]];
 
 (* --- 1. the metric ------------------------------------------------------- *)
 coords = {t, x, y, z};
 eta = DiagonalMatrix[{-1, 1, 1, 1}];
 gComponents = (L^2/z^2) eta;
-g = CT`Tensor[coords, {"down", "down"}, gComponents, Automatic,
+g = Tensor`Field[coords, {"down", "down"}, gComponents, Automatic,
    <|"signature" -> "mostly-plus", "spacetime" -> "AdS4 Poincare"|>];
 
 Print["Metric g_{mu nu}:"];
 Print[MatrixForm[gComponents]];
 
 (* --- 2. curvature, composed from library primitives ---------------------- *)
-gamma = GRT`ChristoffelFromMetric[g];
-riem = GRT`RiemannFromMetric[g];           (* R_{rho sigma mu nu} *)
-ricci = GRT`RicciFromMetric[g];            (* R_{mu nu} *)
-ricciScalar = GRT`RicciScalarFromMetric[g];
-kretschmann = GRT`KretschmannFromMetric[g];
+gamma = GR`Christoffel[g];
+riem = GR`Riemann[g];           (* R_{rho sigma mu nu} *)
+ricci = GR`Ricci[g];            (* R_{mu nu} *)
+ricciScalar = GR`RicciScalar[g];
+kretschmann = GR`Kretschmann[g];
 
 Print["\nNonzero Christoffel symbols Gamma^a_{bc}:"];
-Do[With[{val = CT`Components[gamma][[a, b, c]]},
+Do[With[{val = Tensor`Components[gamma][[a, b, c]]},
    If[val =!= 0,
     Print["  Gamma^", coords[[a]], "_{", coords[[b]], coords[[c]], "} = ", val]]],
   {a, 4}, {b, 4}, {c, b, 4}];
 
-Print["\nRicci tensor R_{mu nu} = ", MatrixForm[CT`Components[ricci]]];
+Print["\nRicci tensor R_{mu nu} = ", MatrixForm[Tensor`Components[ricci]]];
 Print["Ricci scalar R = ", ricciScalar];
 Print["Kretschmann K = ", kretschmann];
 
@@ -71,9 +69,9 @@ maxSymRiemann = Table[
 
 checks = <|
    "Riemann == maximally-symmetric form"
-     -> CT`EquivalentQ[CT`Components[riem], maxSymRiemann],
-   "Ricci scalar == -12/L^2" -> CT`EquivalentQ[ricciScalar, -12/L^2],
-   "Kretschmann == 24/L^4" -> CT`EquivalentQ[kretschmann, 24/L^4]
+     -> Core`EquivalentQ[Tensor`Components[riem], maxSymRiemann],
+   "Ricci scalar == -12/L^2" -> Core`EquivalentQ[ricciScalar, -12/L^2],
+   "Kretschmann == 24/L^4" -> Core`EquivalentQ[kretschmann, 24/L^4]
 |>;
 
 Print["\nSanity checks:"];

@@ -1,13 +1,13 @@
 # Wolfram kernel harness (`scripts/wolfram.py`)
 
-The shared substrate every higher layer of `mathematica-author` runs WL through.
+The shared substrate every higher layer of `wolfram-author` runs WL through.
 Stdlib-only Python (no venv); requires `wolframscript` on PATH.
 
 ## Invocation
 
 ```bash
 # evaluate a payload
-python3 scripts/wolfram.py run --code '<WL>' [--load ogre] [--load xact] [--timeout 60] [--pretty]
+python3 scripts/wolfram.py run --code '<WL>' [--load core] [--load gr] [--timeout 60] [--pretty]
 python3 scripts/wolfram.py run --file payload.wl
 echo '<WL>' | python3 scripts/wolfram.py run
 

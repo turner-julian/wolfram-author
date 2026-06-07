@@ -1,5 +1,5 @@
 ---
-name: mathematica-author
+name: wolfram-author
 description: >-
   Write good, well-documented, runnable Wolfram Language / Mathematica code for a
   computational request, and return the code (not just an answer) so the user can
@@ -13,7 +13,7 @@ description: >-
   has. If the user only wants their existing result audited, prefer verify-math.
 ---
 
-# mathematica-author
+# wolfram-author
 
 ## Why this skill exists
 
@@ -54,28 +54,28 @@ The answer itself is a byproduct — always give the user the code that produced
 1. **Restate** the request and fix conventions (metric signature, index ordering,
    coordinate names, AdS radius, branch/domain). State each as given or assumed.
 2. **Decompose** into the operations needed (e.g. metric → Christoffel → Riemann).
-3. **Reuse the library.** Check `lib/index.json` for primitives that cover the
+3. **Reuse the library.** Check `lib/registry.json` for primitives that cover the
    operations; compose them. Prefer the registered winner (it is the fast,
    equivalence-verified implementation).
 4. **New primitive? Gate it.** If an operation is missing *and* it is (a) needed
    by this real request and (b) likely to recur or benefits from interop/speed:
    write ≥2 candidate implementations, run `bench.py` to time + verify
    equivalence, and **only if `promotable`** add the winner to `lib/` and register
-   it in `index.json` (with its benchmark + equivalence record). Otherwise write
+   it in `registry.json` (with its benchmark + equivalence record). Otherwise write
    it inline in the generated script and do **not** promote it. No speculative
    library entries — see Governance.
 5. **Assemble** the top-level script: documented header, composed from primitives,
    readable. **Load the library via `init.wl`** — begin the script with
-   `Get["/path/to/mathematica-author/init.wl"]` which sets `$CTLibDir`
-   and loads both `CT.wl` and `GRT.wl`. Call functions with their **full
-   context prefixes** (`CT`Tensor`, `GRT`RiemannFromMetric`). The
+   `Get["/path/to/wolfram-author/init.wl"]` which sets `$CTLibDir`
+   and loads Core`, Tensor`, and GR`. Call functions with their **full
+   context prefixes** (`Tensor`Field`, `GR`Riemann`). The
    delivered file must run as-is with a bare `wolframscript -file script.wl`,
    no flags. `--load` is only for ad-hoc `run --code` one-liners; **never let
    a delivered script depend on `--load` or on `Needs` of an unloaded context**
    — that is exactly the AdS5 failure. See `references/wolfram-conventions.md`
    for detail.
 6. **Quality gate — Wolfram only.** Run the script with `wolfram.py` against the
-   local kernel and sanity-check in-kernel via `CT`EquivalentQ`: dimensions,
+   local kernel and sanity-check in-kernel via `Core`EquivalentQ`: dimensions,
    limiting cases, symmetry, known special cases (e.g. AdS maximally symmetric:
    `R = -D(D-1)/L²`, Kretschmann `2D(D-1)/L⁴`). **There is no second engine.** If
    `wolfram.py` returns `no-kernel` (no `wolframscript` on PATH), `timeout`,
@@ -95,7 +95,7 @@ Run from this skill's directory.
 **Kernel harness** — `scripts/wolfram.py` (stdlib only; needs `wolframscript`):
 
 ```
-python3 scripts/wolfram.py run --code '<WL>' [--load grt|ogre|xact|ct] [--timeout N]
+python3 scripts/wolfram.py run --code '<WL>' [--load core|tensor|gr|qec] [--timeout N]
 python3 scripts/wolfram.py run --file payload.wl
 python3 scripts/wolfram.py selftest
 ```
@@ -106,37 +106,44 @@ clean result; and a `head` equal to the operator you asked to evaluate
 (`Integrate`, `Solve`, `Sum`…) means it *did not close* — never report that as an
 answer. Full protocol: `references/wolfram-harness.md`.
 
-**Tensor algebra** — `lib/CT.wl` index manipulation, contraction, and
-coordinate transforms (all use Dot-based contraction for speed):
+**Tensor algebra** — `lib/tensor.wl` (context `Tensor``) index manipulation,
+contraction, and coordinate transforms (all use Dot-based contraction for speed):
 
 ```
-Raise[t, n]                  (* raise index n; infers metric from t *)
-Raise[t, n, g]               (* raise using explicit metric g *)
-Lower[t, n]                  (* lower index n *)
-Trace[t, {i, j}]             (* contract indices i,j (one up, one down) *)
-Product[t1, t2]              (* tensor (outer) product *)
-Contract[t1, i, t2, j]       (* contract index i of t1 with j of t2 *)
-Transform[t, newCoords, rules]  (* coord transform; rules = backward map *)
+Tensor`Field[coords, indices, components, metric, conventions]
+Tensor`Raise[t, n]           (* raise index n; infers metric from t *)
+Tensor`Raise[t, n, g]       (* raise using explicit metric g *)
+Tensor`Lower[t, n]           (* lower index n *)
+Tensor`Trc[t, {i, j}]       (* contract indices i,j (one up, one down) *)
+Tensor`Prod[t1, t2]         (* tensor (outer) product *)
+Tensor`Contract[t1, i, t2, j]  (* contract index i of t1 with j of t2 *)
+Tensor`Transform[t, newCoords, rules]  (* coord transform; rules = backward map *)
 ```
 
-**GR operations** — `lib/GRT.wl` curvature decomposition, covariant derivative, geodesics,
-and symmetry analysis (use cached Christoffels):
+**GR operations** — `lib/gr.wl` (context `GR``) curvature decomposition,
+covariant derivative, geodesics, and symmetry analysis (cached Christoffels):
 
 ```
-WeylFromMetric[g]              (* Weyl (conformal) tensor C_{rho sigma mu nu} *)
-EinsteinFromMetric[g]          (* Einstein tensor G_{mu nu} = R_{mu nu} - (1/2)R g *)
-TracelessRicciFromMetric[g]    (* traceless Ricci S_{mu nu} = R_{mu nu} - (1/D)R g *)
-KillingEquationsFromMetric[g]  (* Killing equation PDE system as {eq1==0, ...} *)
-CovariantDFromMetric[t, g]     (* nabla of t w.r.t. metric g; prepends down index *)
-GeodesicEquationsFromMetric[g] (* geodesic ODEs; coords -> functions of lambda *)
+GR`Christoffel[g]         (* Christoffel symbols Gamma^a_bc *)
+GR`Riemann[g]             (* all-lower Riemann R_{rho sigma mu nu} *)
+GR`Ricci[g]               (* Ricci tensor R_{mu nu} *)
+GR`RicciScalar[g]         (* Ricci scalar *)
+GR`Kretschmann[g]         (* Kretschmann scalar R_{abcd}R^{abcd} *)
+GR`Weyl[g]                (* Weyl tensor C_{rho sigma mu nu} *)
+GR`Einstein[g]            (* Einstein tensor G_{mu nu} *)
+GR`TracelessRicci[g]      (* traceless Ricci S_{mu nu} *)
+GR`Killing[g]             (* Killing equation PDE system *)
+GR`CovariantD[t, g]       (* nabla of t w.r.t. metric g; prepends down index *)
+GR`Geodesic[g]            (* geodesic ODEs; coords -> functions of lambda *)
+GR`Hamiltonian[g, p]      (* geodesic Hamiltonian g^{mu nu} p_mu p_nu *)
 ```
 
-Each GR function has a built-in array implementation and cross-checks via OGRe
-(`*OGRe`) and xAct/xCoba (`*XAct`). The xAct adapters require `--load xcoba`.
+**Core** — `lib/core.wl` (context `Core``): `Core`EquivalentQ[a, b]` (True /
+False / $Failed), `Core`CacheClear[]`, conventions, shared computation cache.
 
-**Cache** — `CacheClear[]` resets the shared cache (inverse metrics +
-Christoffels). Christoffel computation is shared across `ChristoffelFromMetric`,
-`RiemannFromMetric`, `CovariantDFromMetric`, and `GeodesicEquationsFromMetric`.
+**Cache** — `Core`CacheClear[]` resets the shared cache (inverse metrics +
+Christoffels). Christoffel computation is shared across `GR`Christoffel`,
+`GR`Riemann`, `GR`CovariantD`, and `GR`Geodesic`.
 
 **Promotion gate** — `scripts/bench.py` (the only way code enters `lib/`):
 
@@ -165,7 +172,7 @@ Two loops harden the skill (detail in `references/evals.md`):
 
 - **Code-gen quality** — `evals/run_codegen_eval.py` runs a generated script in
   a real kernel and confirms its values against convention-independent
-  assertions (curvature invariants, scalars via `CT`EquivalentQ`), Wolfram
+  assertions (curvature invariants, scalars via `Core`EquivalentQ`), Wolfram
   only. Machine-graded, never an LLM judge — correctness here is mechanically
   decidable. `python3 evals/run_codegen_eval.py selftest`; cases in
   `evals/cases/*.json`. Add a case when you cover a new computation worth
@@ -186,7 +193,7 @@ wrong). A function enters `lib/` only if **all** hold (full detail in
 2. **benchmarked** against ≥1 alternative via `bench.py`;
 3. **equivalence-verified** to a reference (`EquivalentQ` → True for all pairs);
 4. **documented** with its representation contract + conventions, registered in
-   `index.json`.
+   `registry.json`.
 
 Keep the representation **narrow** — a tensor is components + index positions +
 metric + conventions. Do **not** build a grand unified abstract-index algebra.
@@ -214,6 +221,6 @@ GR sign/index conventions are pinned and verified against OGRe on AdS4 (see
 `references/wolfram-conventions.md`, which also lists the OGRe gotchas that will
 bite if ignored). Follow the user's standing physics conventions (natural units,
 mostly-plus signature) unless the request says otherwise, and state any you rely
-on. Packages load via `--load`: `ogre` (component GR), `xact` (abstract-index
-tensor algebra — use when symbolic/abstract work makes it competitive), `gr`/
-`mauthor` (this skill's library).
+on. Packages load via `--load`: `core` (equality, cache), `tensor` (index
+algebra; implies core), `gr` (GR curvature; implies core + tensor), `qec`
+(finite-dim operators; implies core).

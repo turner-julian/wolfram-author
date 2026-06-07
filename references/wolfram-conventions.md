@@ -57,10 +57,10 @@ no `--load` flags, no reliance on anything being pre-loaded. Load via `init.wl`
 at the repo root and call functions with **full context prefixes**:
 
 ```wolfram
-Get["/path/to/mathematica-author/init.wl"];
-(* This sets $CTLibDir and loads CT.wl + GR.wl *)
+Get["/path/to/wolfram-author/init.wl"];
+(* This sets $CTLibDir and loads Core`, Tensor`, GR` *)
 
-riem = GRT`RiemannFromMetric[g];   (* full prefix, not bare Needs *)
+riem = GR`Riemann[g];   (* full prefix, not bare Needs *)
 ```
 
 For scripts that live inside the repo (examples, evals), use a relative path:
@@ -74,7 +74,7 @@ But the GR operators live in `GR.wl`, which only `--load gr` loads; `GRT``
 is not on `$Path`, so the operators were undefined. `init.wl` loads both packages
 unconditionally.
 
-- **Rule:** `--load ct|grt|ogre|xact` is only for ad-hoc `wolfram.py run
+- **Rule:** `--load core|tensor|gr` is only for ad-hoc `wolfram.py run
   --code '<one-liner>'`. A delivered file never depends on `--load` — it loads
   via `init.wl`.
 - Quality-gate the file exactly as the user will run it: `wolfram.py run --file

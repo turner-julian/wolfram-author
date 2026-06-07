@@ -64,8 +64,8 @@ def benchmark(
 ) -> dict:
     loads = list(loads or [])
     # EquivalentQ + canonical rep must be available; "gr" already loads mauthor.
-    if not ({"mauthor", "gr"} & set(loads)):
-        loads = loads + ["mauthor"]
+    if not ({"core", "gr"} & set(loads)):
+        loads = loads + ["core"]
     prefix = (setup + ";\n") if setup.strip() else ""
 
     rows = []
@@ -101,7 +101,7 @@ def benchmark(
             else "$Failed"
             for r in rows[1:]
         )
-        eq = wolfram.run(f"{{{checks}}}", loads=["mauthor"], timeout=timeout)
+        eq = wolfram.run(f"{{{checks}}}", loads=["core"], timeout=timeout)
         verdicts = _parse_verdicts(eq["result"])
         for r, v in zip(rows[1:], verdicts):
             pairs.append({"id": r["id"], "verdict": v})

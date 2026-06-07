@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Cross-engine quality gate: confirm a Wolfram scalar result with SymPy.
 
-The mathematica-author skill computes in Wolfram. This bridge asks the
+The wolfram-author skill computes in Wolfram. This bridge asks the
 verify-math skill's SymPy verifier for an INDEPENDENT second opinion on a scalar
 equality (result == expected). Two independent CAS engines agreeing is much
 stronger evidence than one -- it catches a Wolfram-specific quirk, a convention

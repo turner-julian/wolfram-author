@@ -1,0 +1,419 @@
+{
+  "$schema": "docs/registry-schema.md",
+  "_comment": "Capability registry (ADR-0007), generalized from wolfram-author/lib/index.json per docs/registry-schema.md. One entry per capability primitive defined in lib/CT.wl and lib/GRT.wl. Per docs/gate.md the >=2-benchmarked-candidates SPEED race is dropped for capability primitives: entries carry CORRECTNESS evidence, not timing (the original timing history stays in wolfram-author/lib/index.json). status: 'verified' passes the gate (needed AND verified-vs-closed-form/independent-method/second-library AND documented conventions); 'provisional' is in lib/ and callable but lacks an independent (non-chained) check; 'deprecated' is superseded. 'seed:' in first_demanded_by marks primitives ported pre-registry (the demand-driven loop starts now; new primitives record a real content-miss). 'high_stakes': true marks a primitive a content claim rests on directly; per the trust DAG those carry a non-chained check (second-library or closed-form), never only a check routed through their own dependency chain. The CT substrate (Tensor/TensQ/accessors/EquivalentQ/cache) is the trusted base, not a gated capability, so it has no entry; the *OGRe and *XAct adapter functions are verification machinery (the second-library evidence), not capabilities, so they have no entry either.",
+  "capabilities": [
+    {
+      "name": "Christoffel",
+      "file": "lib/gr.wl",
+      "context": "GR`",
+      "signature": "Christoffel[g_?FieldQ]",
+      "depends_on": [],
+      "representation": "input: metric Tensor {down,down}; output: Tensor {up,down,down} (connection coefficients carried in Tensor form). Cached and reused by Riemann/Ricci/CovariantD/Geodesic/Killing.",
+      "conventions": {
+        "christoffel": "Levi-Civita: Gamma^a_bc = 1/2 g^as (d_b g_sc + d_c g_sb - d_s g_bc)",
+        "metric_signature": "operator is signature-agnostic; sanity values quoted in (-+++) mostly-plus",
+        "source": "lib/GRT.wl header; references/wolfram-conventions.md (wolfram-author)"
+      },
+      "verification": {
+        "method": "second-library",
+        "evidence": "EquivalentQ vs ChristoffelOGRe (OGRe TCalcChristoffel) on AdS4 Poincare; matches OGRe componentwise (seed index.json 2026-05-28).",
+        "reference": "GRT`ChristoffelOGRe"
+      },
+      "first_demanded_by": "seed: wolfram-author lib (foundation of the GR curvature pipeline)",
+      "high_stakes": true,
+      "status": "verified"
+    },
+    {
+      "name": "Riemann",
+      "file": "lib/gr.wl",
+      "context": "GR`",
+      "signature": "Riemann[g_?FieldQ]",
+      "depends_on": ["Christoffel"],
+      "representation": "input: metric Tensor {down,down}; output: all-lower Riemann Tensor {down,down,down,down}.",
+      "conventions": {
+        "riemann_mixed": "R^r_smn = d_m Gamma^r_ns - d_n Gamma^r_ms + Gamma^r_ml Gamma^l_ns - Gamma^r_nl Gamma^l_ms",
+        "riemann_lowered": "R_rsmn = g_ra R^a_smn, index order (rho sigma mu nu)",
+        "notes": "matches OGRe componentwise on AdS4"
+      },
+      "verification": {
+        "method": "second-library",
+        "evidence": "EquivalentQ vs RiemannOGRe on AdS4 Poincare (seed index.json 2026-05-28); independent xAct/xCoba adapter (RiemannXAct) available as a third cross-check.",
+        "reference": "GRT`RiemannOGRe, GRT`RiemannXAct"
+      },
+      "first_demanded_by": "wolfram-author eval: ads-riemann, ads5-riemann (Riemann tensor of AdS_d)",
+      "high_stakes": true,
+      "status": "verified"
+    },
+    {
+      "name": "Ricci",
+      "file": "lib/gr.wl",
+      "context": "GR`",
+      "signature": "Ricci[g_?FieldQ]",
+      "depends_on": ["Christoffel"],
+      "representation": "input: metric Tensor {down,down}; output: Ricci Tensor {down,down} (computed directly from Christoffel, no full Riemann built).",
+      "conventions": {
+        "ricci": "R_sn = R^m_smn (contraction of the mixed Riemann on the first/third index)",
+        "notes": "same sign/index convention as Riemann"
+      },
+      "verification": {
+        "method": "second-library",
+        "evidence": "EquivalentQ vs RicciOGRe and RicciXAct; cross-checked against CT`Trc[Riemann, {1,3}] (independent path) and the maximally-symmetric closed form R_{mn} = -(D-1)/L^2 g_{mn} on AdS4.",
+        "reference": "GRT`RicciOGRe, GRT`RicciXAct, CT`Trc[GRT`Riemann]"
+      },
+      "first_demanded_by": "seed: wolfram-author lib (underpins RicciScalar/Einstein/Weyl/TracelessRicci; exercised by the schwarzschild-kretschmann eval)",
+      "high_stakes": true,
+      "status": "verified"
+    },
+    {
+      "name": "RicciScalar",
+      "file": "lib/gr.wl",
+      "context": "GR`",
+      "signature": "RicciScalar[g_?FieldQ]",
+      "depends_on": ["Ricci"],
+      "representation": "input: metric Tensor {down,down}; output: scalar expression R = g^sn R_sn.",
+      "conventions": {
+        "ricci_scalar": "R = g^sn R_sn",
+        "notes": "maximally-symmetric closed form R = -D(D-1)/L^2 (AdS4: -12/L^2)"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "AdS4 R = -12/L^2 (verify_bridge.py selftest, two-engine Wolfram+SymPy); Schwarzschild R = 0 (eval schwarzschild-kretschmann, live run 2026-06-01); cross-check vs RicciScalarOGRe / RicciScalarXAct.",
+        "reference": "wolfram-author eval schwarzschild-kretschmann; GRT`RicciScalarOGRe"
+      },
+      "first_demanded_by": "wolfram-author eval: schwarzschild-kretschmann (Ricci scalar of Schwarzschild)",
+      "high_stakes": true,
+      "status": "verified"
+    },
+    {
+      "name": "Kretschmann",
+      "file": "lib/gr.wl",
+      "context": "GR`",
+      "signature": "Kretschmann[g_?FieldQ]",
+      "depends_on": ["Riemann"],
+      "representation": "input: metric Tensor {down,down}; output: scalar invariant K = R_{abcd} R^{abcd}.",
+      "conventions": {
+        "kretschmann": "K = R_{abcd} R^{abcd}",
+        "notes": "fully convention-independent (sum of squares); the most robust check that curvature code is right. Schwarzschild K = 48 M^2/r^6; AdS_D K = 2 D(D-1)/L^4 (AdS4: 24/L^4)."
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "Schwarzschild K = 48 M^2/r^6 (eval schwarzschild-kretschmann + live run 2026-06-01); AdS4 K = 24/L^4; convention-independent invariant; cross-check vs KretschmannXAct.",
+        "reference": "wolfram-author eval schwarzschild-kretschmann; GRT`KretschmannXAct"
+      },
+      "first_demanded_by": "wolfram-author eval: schwarzschild-kretschmann (Kretschmann scalar of Schwarzschild)",
+      "high_stakes": true,
+      "status": "verified"
+    },
+    {
+      "name": "Weyl",
+      "file": "lib/gr.wl",
+      "context": "GR`",
+      "signature": "Weyl[g_?FieldQ]",
+      "depends_on": ["Riemann", "Ricci", "RicciScalar"],
+      "representation": "input: metric Tensor {down,down}; output: all-lower Weyl Tensor {down,down,down,down}. Vanishes identically in D<=3.",
+      "conventions": {
+        "weyl": "C_{abcd} = R_{abcd} - (2/(D-2))(g_{a[c}R_{d]b} - g_{b[c}R_{d]a}) + (2/((D-1)(D-2))) R g_{a[c}g_{d]b}",
+        "notes": "vanishes in D<=3; C=0 for conformally flat (incl. all maximally symmetric); C=R for vacuum (Ricci-flat)"
+      },
+      "verification": {
+        "method": "second-library",
+        "evidence": "three-way EquivalentQ vs OGRe (TCalcWeylTensor) and xAct/xCoba on Schwarzschild (C = Riemann, vacuum) and AdS4 (C = 0, conformally flat); live AdS4 run 2026-06-01 gives max|C| = 0.",
+        "reference": "GRT`WeylOGRe, GRT`WeylXAct"
+      },
+      "first_demanded_by": "seed: wolfram-author GR curvature-decomposition WIP (2026-05-31)",
+      "high_stakes": true,
+      "status": "verified"
+    },
+    {
+      "name": "Einstein",
+      "file": "lib/gr.wl",
+      "context": "GR`",
+      "signature": "Einstein[g_?FieldQ]",
+      "depends_on": ["Ricci", "RicciScalar"],
+      "representation": "input: metric Tensor {down,down}; output: Einstein Tensor {down,down}.",
+      "conventions": {
+        "einstein": "G_{mu nu} = R_{mu nu} - (1/2) R g_{mu nu}",
+        "notes": "trace g^{mn} G_{mn} = -(D-2)/2 R; vacuum (no Lambda): G = 0; AdS4: G = 3/L^2 g"
+      },
+      "verification": {
+        "method": "second-library",
+        "evidence": "three-way EquivalentQ vs OGRe (TCalcEinsteinTensor) and xAct/xCoba: Schwarzschild G = 0; AdS4 G = 3/L^2 g (live run 2026-06-01, max|G - 3/L^2 g| = 0).",
+        "reference": "GRT`EinsteinOGRe, GRT`EinsteinXAct"
+      },
+      "first_demanded_by": "seed: wolfram-author GR curvature-decomposition WIP (2026-05-31)",
+      "high_stakes": true,
+      "status": "verified"
+    },
+    {
+      "name": "TracelessRicci",
+      "file": "lib/gr.wl",
+      "context": "GR`",
+      "signature": "TracelessRicci[g_?FieldQ]",
+      "depends_on": ["Ricci", "RicciScalar"],
+      "representation": "input: metric Tensor {down,down}; output: traceless Ricci Tensor S {down,down}.",
+      "conventions": {
+        "traceless_ricci": "S_{mu nu} = R_{mu nu} - (1/D) R g_{mu nu}",
+        "notes": "g^{mn} S_{mn} = 0 by construction; S = 0 for vacuum and for maximally symmetric"
+      },
+      "verification": {
+        "method": "second-library",
+        "evidence": "two-way EquivalentQ vs OGRe-composed (Ricci - R/D g); trace g^{mn} S_{mn} = 0 by construction; S = 0 on AdS4 (live run 2026-06-01, max|S| = 0).",
+        "reference": "GRT`TracelessRicciOGRe"
+      },
+      "first_demanded_by": "seed: wolfram-author GR curvature-decomposition WIP (2026-05-31)",
+      "high_stakes": true,
+      "status": "verified"
+    },
+    {
+      "name": "CovariantD",
+      "file": "lib/gr.wl",
+      "context": "GR`",
+      "signature": "CovariantD[t_?FieldQ, g_?FieldQ]",
+      "depends_on": ["Christoffel"],
+      "representation": "input: Tensor t + metric Tensor g; output: Tensor with one extra leading 'down' (derivative) index. Uses cached Christoffels.",
+      "conventions": {
+        "covariant_d": "Levi-Civita connection; nabla prepends one down index; + Gamma correction per upper index, - Gamma correction per lower index",
+        "notes": "same Christoffel convention as Christoffel"
+      },
+      "verification": {
+        "method": "second-library",
+        "evidence": "EquivalentQ vs CovariantDOGRe (OGRe TCalcCovariantDerivative); independent identity nabla R_{mu nu} = 0 for vacuum (Schwarzschild) holds (seed index.json 2026-05-28).",
+        "reference": "GRT`CovariantDOGRe"
+      },
+      "first_demanded_by": "seed: wolfram-author lib (tensor-algebra ops, 2026-05-28)",
+      "status": "verified"
+    },
+    {
+      "name": "Geodesic",
+      "file": "lib/gr.wl",
+      "context": "GR`",
+      "signature": "Geodesic[g_?FieldQ] or Geodesic[g, param]",
+      "depends_on": ["Christoffel"],
+      "representation": "input: metric Tensor {down,down} (+ optional affine parameter); output: list of expressions == 0. Coordinates promoted to functions of the affine parameter.",
+      "conventions": {
+        "geodesic": "xddot^mu + Gamma^mu_ab xdot^a xdot^b = 0; coords -> functions of the affine parameter",
+        "notes": "same Christoffel convention as Christoffel"
+      },
+      "verification": {
+        "method": "second-library",
+        "evidence": "cross-check path GeodesicOGRe (OGRe TCalcGeodesicEquations, Euler-Lagrange of the metric Lagrangian) loads and is available (confirmed 2026-06-02). Kept provisional: geodesic equations are '=0' forms that can differ from OGRe's by an overall scalar factor and affine-parameter scaling, so a raw EquivalentQ false-negatives. Promotion needs a normalization-aware comparison (match Christoffel coefficients, or normalize the parametrization), not raw expression equality.",
+        "reference": "GRT`GeodesicOGRe"
+      },
+      "first_demanded_by": "seed: wolfram-author lib (tensor-algebra ops, 2026-05-28)",
+      "status": "provisional"
+    },
+    {
+      "name": "Killing",
+      "file": "lib/gr.wl",
+      "context": "GR`",
+      "signature": "Killing[g_?FieldQ]",
+      "depends_on": ["Christoffel"],
+      "representation": "input: metric Tensor {down,down}; output: list of D(D+1)/2 independent equations {eq == 0, ...} for D unknown functions xi[k][coords...].",
+      "conventions": {
+        "killing": "d_mu xi_nu + d_nu xi_mu - 2 Gamma^a_{mu nu} xi_a = 0",
+        "notes": "nabla_(mu) xi_(nu) + nabla_(nu) xi_(mu) = 0; returns the mu<=nu independent equations"
+      },
+      "verification": {
+        "method": "independent-method",
+        "evidence": "two independent code paths agree (EquivalentQ on LHS arrays): direct-Christoffel formula vs the CovariantD construction (KillingCovD). D(D+1)/2 = 10 equations for D=4 (live run 2026-06-01).",
+        "reference": "GRT`KillingCovD"
+      },
+      "first_demanded_by": "seed: wolfram-author GR curvature-decomposition WIP (2026-05-31; symmetry analysis)",
+      "status": "verified"
+    },
+    {
+      "name": "Hamiltonian",
+      "file": "lib/gr.wl",
+      "context": "GR`",
+      "signature": "Hamiltonian[g_?FieldQ, p_List]",
+      "depends_on": [],
+      "representation": "input: metric Tensor {down,down} + momentum covector p (length-D list of lower components p_mu); output: scalar H = g^{mu nu} p_mu p_nu.",
+      "conventions": {
+        "hamiltonian": "H = g^{mu nu} p_mu p_nu (no 1/2 factor); p is the all-down momentum covector",
+        "notes": "geodesic Hamilton-Jacobi / Carter Hamiltonian; for Kerr (Boyer-Lindquist) with p_t = -E, p_phi = L, Sigma*H = R(r) + Theta(theta)"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "Kerr Boyer-Lindquist Carter separability: Sigma*H separates as R(r) + Theta(theta), so the mixed partial d_r d_theta (Sigma*H) = 0 (live run 2026-06-01); an independent second contraction path (Raise p to p^mu, then p^mu p_mu) agrees via CT`EquivalentQ.",
+        "reference": "Carter (1968) Kerr geodesic separability; cross-checked against CT`Raise"
+      },
+      "first_demanded_by": "spec-loom Phase E: Kerr Carter separability (Sigma*H was built externally as a ~600-char paste)",
+      "high_stakes": true,
+      "status": "verified"
+    },
+    {
+      "name": "Raise",
+      "file": "lib/tensor.wl",
+      "context": "Tensor`",
+      "signature": "Raise[t_?FieldQ, n_Integer] or Raise[t, n, g]",
+      "depends_on": [],
+      "representation": "input: Tensor + index position n (+ optional metric); output: Tensor with index n flipped down->up. Dot-based contraction; inverse metric cached.",
+      "conventions": {
+        "index": "CT canonical tensor: indices are an ordered up/down list; Raise contracts index n with the inverse of the stored all-down metric",
+        "notes": "metric and signature inherited from the input Tensor (or passed explicitly)"
+      },
+      "verification": {
+        "method": "second-library",
+        "evidence": "EquivalentQ vs OGRe TGetComponents on Schwarzschild Riemann, raise 1st index (seed index.json 2026-05-28).",
+        "reference": "OGRe`TGetComponents"
+      },
+      "first_demanded_by": "seed: wolfram-author lib (tensor-algebra ops, 2026-05-28)",
+      "status": "verified"
+    },
+    {
+      "name": "Lower",
+      "file": "lib/tensor.wl",
+      "context": "Tensor`",
+      "signature": "Lower[t_?FieldQ, n_Integer] or Lower[t, n, g]",
+      "depends_on": [],
+      "representation": "input: Tensor + index position n (+ optional metric); output: Tensor with index n flipped up->down. Same Dot-based engine as Raise.",
+      "conventions": {
+        "index": "CT canonical tensor: Lower contracts index n with the stored all-down metric",
+        "notes": "metric and signature inherited from the input Tensor (or passed explicitly)"
+      },
+      "verification": {
+        "method": "independent-method",
+        "evidence": "round-trip Raise then Lower == original on Schwarzschild Riemann (seed index.json 2026-05-28).",
+        "reference": "CT`Raise (inverse operation)"
+      },
+      "first_demanded_by": "seed: wolfram-author lib (tensor-algebra ops, 2026-05-28)",
+      "status": "verified"
+    },
+    {
+      "name": "Trc",
+      "file": "lib/tensor.wl",
+      "context": "Tensor`",
+      "signature": "Trc[t_?FieldQ, {i_Integer, j_Integer}]",
+      "depends_on": [],
+      "representation": "input: Tensor + index pair {i,j} (one up, one down); output: Tensor of rank r-2, or a scalar if r=2.",
+      "conventions": {
+        "contraction": "trace over one up + one down index (Tr / Transpose-based)",
+        "notes": "errors unless exactly one index is up and the other down"
+      },
+      "verification": {
+        "method": "independent-method",
+        "evidence": "Trc[R^m_smn, {1,3}] == Ricci on Schwarzschild (seed index.json 2026-05-28); this is the independent path Ricci is cross-checked against.",
+        "reference": "GRT`Ricci"
+      },
+      "first_demanded_by": "seed: wolfram-author lib (tensor-algebra ops, 2026-05-28)",
+      "status": "verified"
+    },
+    {
+      "name": "Prod",
+      "file": "lib/tensor.wl",
+      "context": "Tensor`",
+      "signature": "Prod[t1_?FieldQ, t2_?FieldQ]",
+      "depends_on": [],
+      "representation": "input: two Tensors; output: outer-product Tensor of rank r1+r2, index order indices[t1] ++ indices[t2]. Outer[Times, ...].",
+      "conventions": {
+        "outer_product": "T^{...}_{...} = t1 (outer) t2 via Outer[Times, components]",
+        "notes": "index order is t1's indices followed by t2's"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "EquivalentQ vs the literal outer product: Prod[vec{a1,a2}, vec{b1,b2}] has components {{a1 b1, a1 b2},{a2 b1, a2 b2}} and Indices {up,up} (the index-order convention). Hand-written closed form, independent of Outer[Times]; live run 2026-06-02.",
+        "reference": "literal outer-product components {{a_i b_j}}"
+      },
+      "first_demanded_by": "seed: wolfram-author lib (tensor-algebra ops, 2026-05-28)",
+      "status": "verified"
+    },
+    {
+      "name": "Contract",
+      "file": "lib/tensor.wl",
+      "context": "Tensor`",
+      "signature": "Contract[t1_?FieldQ, i_Integer, t2_?FieldQ, j_Integer]",
+      "depends_on": ["Prod", "Trc"],
+      "representation": "input: two Tensors + index positions i (of t1) and j (of t2), one up and one down; output: contracted Tensor. Defined as Trc[Prod[t1,t2], {i, Rank[t1]+j}].",
+      "conventions": {
+        "contraction": "Contract[t1,i,t2,j] = Trc[Prod[t1,t2], {i, Rank[t1]+j}]; one up + one down",
+        "notes": "inherits Prod and Trc conventions"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "EquivalentQ vs the literal contraction: Contract[v^a, w_a] == v1 w1 + v2 w2 for v={v1,v2} up, w={w1,w2} down. Hand-written closed form, not routed through Prod/Trc; live run 2026-06-02.",
+        "reference": "literal contraction sum v^a w_a"
+      },
+      "first_demanded_by": "seed: wolfram-author lib (tensor-algebra ops, 2026-05-28)",
+      "status": "verified"
+    },
+    {
+      "name": "Transform",
+      "file": "lib/tensor.wl",
+      "context": "Tensor`",
+      "signature": "Transform[t_?FieldQ, newCoords_List, rules_List]",
+      "depends_on": [],
+      "representation": "input: Tensor + new coordinate symbols + backward-map rules; output: Tensor in the new coordinates (components and stored metric both transformed).",
+      "conventions": {
+        "coord_transform": "rules = backward map {old_mu -> f_mu[newCoords]}; backward Jacobian M_{mu,mu'} = d(old_mu)/d(new_mu'); down index contracts with M^T, up index with M^{-1}",
+        "notes": "metric transformed as g' = M^T (g . rules) M"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "EquivalentQ vs the known analytic Eddington-Finkelstein metric for Schwarzschild -> EF (seed index.json 2026-05-28).",
+        "reference": "analytic Eddington-Finkelstein metric"
+      },
+      "first_demanded_by": "seed: wolfram-author lib (tensor-algebra ops, 2026-05-28)",
+      "status": "verified"
+    },
+    {
+      "name": "Codespace",
+      "file": "lib/qec.wl",
+      "context": "QEC`",
+      "signature": "Codespace[p_]",
+      "depends_on": [],
+      "representation": "input: a projector p; output: an isometry (d x rank) whose columns are an orthonormal basis of p's eigenvalue-1 space (ker(p - I), orthonormalized).",
+      "conventions": {
+        "codespace": "columns are an orthonormal basis of ker(p - I); exact (NullSpace + Orthogonalize)",
+        "notes": "rank = Tr[p] for a projector"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "[[5,1,3]] perfect code: V-dagger V = I_2 and V V-dagger = P hold exactly (live run 2026-06-02).",
+        "reference": "Nielsen & Chuang, Quantum Computation, sec. 10.5.6 (five-qubit code)"
+      },
+      "first_demanded_by": "spec-loom QEC eval: the [[5,1,3]] codespace isometry",
+      "high_stakes": true,
+      "status": "verified"
+    },
+    {
+      "name": "PartialTrace",
+      "file": "lib/qec.wl",
+      "context": "QEC`",
+      "signature": "PartialTrace[rho_, keep_List, dims_List]",
+      "depends_on": [],
+      "representation": "input: density matrix rho + kept subsystems (1-indexed) + subsystem dims; output: the reduced density matrix on the kept subsystems (the rest traced out).",
+      "conventions": {
+        "partial_trace": "reshape to a ket/bra subsystem tensor, contract each traced subsystem's ket/bra index pair (TensorContract), reshape back to a matrix",
+        "notes": "keep is 1-indexed"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "[[5,1,3]] codeword: the 2-qubit reduction is maximally mixed (= I/4) exactly, as required for a distance-3 perfect (2-uniform) code (live run 2026-06-02).",
+        "reference": "Nielsen & Chuang sec. 2.4.3; Laflamme-Miquel-Paz-Zurek 1996 (five-qubit code)"
+      },
+      "first_demanded_by": "spec-loom QEC eval: the [[5,1,3]] subsystem reductions",
+      "high_stakes": true,
+      "status": "verified"
+    },
+    {
+      "name": "VonNeumannEntropy",
+      "file": "lib/qec.wl",
+      "context": "QEC`",
+      "signature": "VonNeumannEntropy[rho_]",
+      "depends_on": [],
+      "representation": "input: density matrix rho; output: the scalar von Neumann entropy -Tr[rho Log rho] (natural log), exact.",
+      "conventions": {
+        "entropy": "natural log; -sum lambda log lambda over the nonzero eigenvalues of the Hermitian part",
+        "notes": "named to avoid the protected System`Entropy"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "maximally-mixed 2-qubit reduction -> 2 Log 2 exactly; a pure state -> 0 (live run 2026-06-02).",
+        "reference": "Nielsen & Chuang sec. 11.3.1"
+      },
+      "first_demanded_by": "spec-loom QEC eval: entropy of the [[5,1,3]] subsystem reduction",
+      "high_stakes": true,
+      "status": "verified"
+    }
+  ]
+}

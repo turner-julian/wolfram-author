@@ -1,20 +1,17 @@
 (* ::Package:: *)
 
-(* init.wl -- load the CT + GRT tensor algebra library.
+(* init.wl -- load the wolfram-core library (Core` + Tensor` + GR`).
 
    Get this file from any Mathematica script or notebook to set up the
-   library. It sets $CTLibDir (the absolute path to lib/) so that
-   CT.wl, GRT.wl, and everything they depend on resolve correctly
-   regardless of where the repo is cloned.
+   library. It delegates to lib/init.wl, which sets $CTLibDir and loads
+   all modules.
 
    Usage (from a script or notebook):
-     Get["/path/to/grt/init.wl"];
+     Get["/path/to/wolfram-author/init.wl"];
 
-   After this call, CT` and GRT` are loaded and ready:
-     g = CT`Tensor[coords, {"down","down"}, gdown, Automatic, <||>];
-     riem = GRT`RiemannFromMetric[g];
+   After this call, Core`, Tensor`, and GR` are loaded and ready:
+     g    = Tensor`Field[coords, {"down","down"}, gdown, Automatic, <||>];
+     riem = GR`Riemann[g];
 *)
 
-$CTLibDir = FileNameJoin[{DirectoryName[$InputFileName], "lib"}];
-Get[FileNameJoin[{$CTLibDir, "CT.wl"}]];
-Get[FileNameJoin[{$CTLibDir, "GRT.wl"}]];
+Get[FileNameJoin[{DirectoryName[$InputFileName], "lib", "init.wl"}]];

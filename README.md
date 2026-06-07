@@ -1,6 +1,6 @@
-# GRT
+# wolfram-author
 
-A fast, component-level tensor algebra library for Wolfram Language / Mathematica, with a focus on general relativity. Built-in array implementations beat OGRe by 10-20x on explicit-coordinate metrics while maintaining full correctness verification via `EquivalentQ`.
+A fast, component-level tensor algebra library for Wolfram Language / Mathematica, with a focus on general relativity. Built-in array implementations beat OGRe by 10-20x on explicit-coordinate metrics while maintaining full correctness verification via `Core`EquivalentQ`.
 
 ## Prerequisites
 
@@ -12,8 +12,8 @@ A fast, component-level tensor algebra library for Wolfram Language / Mathematic
 ## Installation
 
 ```bash
-git clone https://github.com/julianturner/mathematica-author.git
-cd mathematica-author
+git clone https://github.com/julianturner/wolfram-author.git
+cd wolfram-author
 cp config.example.json config.json   # edit paths if you have OGRe/xAct
 ```
 
@@ -27,70 +27,75 @@ If you have OGRe installed, set its path in `config.json`:
 From a Mathematica notebook or script:
 
 ```wolfram
-Get["/path/to/mathematica-author/init.wl"];
+Get["/path/to/wolfram-author/init.wl"];
 
 (* Define a metric *)
 coords = {t, r, th, ph};
 f = 1 - 2 M/r;
 gdown = DiagonalMatrix[{-f, 1/f, r^2, r^2 Sin[th]^2}];
-g = CT`Tensor[coords, {"down", "down"}, gdown, Automatic, <||>];
+g = Tensor`Field[coords, {"down", "down"}, gdown, Automatic, <||>];
 
 (* Compute curvature *)
-riem   = GRT`RiemannFromMetric[g];
-ricci  = GRT`RicciFromMetric[g];
-R      = GRT`RicciScalarFromMetric[g];
-K      = GRT`KretschmannFromMetric[g];
+riem   = GR`Riemann[g];
+ricci  = GR`Ricci[g];
+R      = GR`RicciScalar[g];
+K      = GR`Kretschmann[g];
 
 (* Index gymnastics *)
-riemUp = CT`Raise[riem, 1, g];              (* raise first index *)
-ricciFromTrace = CT`Trc[riemUp, {1, 3}];  (* trace -> Ricci *)
+riemUp = Tensor`Raise[riem, 1, g];              (* raise first index *)
+ricciFromTrace = Tensor`Trc[riemUp, {1, 3}];    (* trace -> Ricci *)
 
 (* Covariant derivative *)
-nablaR = GRT`CovariantDFromMetric[ricci, g];
+nablaR = GR`CovariantD[ricci, g];
 
 (* Geodesic equations *)
-geod = GRT`GeodesicEquationsFromMetric[g, \[Lambda]];
+geod = GR`Geodesic[g, \[Lambda]];
 ```
 
 ## API reference
 
-### Core representation (`CT``)
+### Core (`Core``)
 
 | Function | Description |
 |---|---|
-| `Tensor[coords, indices, components, metric, conventions]` | Canonical tensor record (Association) |
-| `TensQ[t]` | Predicate |
-| `Coords`, `Components`, `Indices`, `Metric`, `Conventions`, `Dim`, `Rank` | Accessors |
 | `EquivalentQ[a, b]` | `True` / `False` / `$Failed` (undecided). Symbolic + numeric. |
+| `CacheClear[]` | Clear cached inverse metrics and Christoffels |
 
-### Index manipulation (`CT``)
+### Tensor representation (`Tensor``)
+
+| Function | Description |
+|---|---|
+| `Field[coords, indices, components, metric, conventions]` | Canonical tensor record (verified object) |
+| `FieldQ[t]` | Predicate |
+| `Coords`, `Components`, `Indices`, `Metric`, `Dim`, `Rank` | Accessors |
+
+### Index manipulation (`Tensor``)
 
 | Function | Description |
 |---|---|
 | `Raise[t, n]` or `Raise[t, n, g]` | Raise index `n` using the metric |
 | `Lower[t, n]` or `Lower[t, n, g]` | Lower index `n` |
-| `Trace[t, {i, j}]` | Contract indices `i` and `j` (one up, one down) |
-| `Product[t1, t2]` | Tensor (outer) product |
+| `Trc[t, {i, j}]` | Contract indices `i` and `j` (one up, one down) |
+| `Prod[t1, t2]` | Tensor (outer) product |
 | `Contract[t1, i, t2, j]` | Contract index `i` of `t1` with `j` of `t2` |
 | `Transform[t, newCoords, rules]` | Coordinate transformation (`rules` = backward map) |
 
-### GR operations (`GRT``)
+### GR operations (`GR``)
 
 | Function | Description |
 |---|---|
-| `ChristoffelFromMetric[g]` | Christoffel symbols (cached) |
-| `RiemannFromMetric[g]` | All-lower Riemann tensor |
-| `RicciFromMetric[g]` | Ricci tensor |
-| `RicciScalarFromMetric[g]` | Ricci scalar |
-| `KretschmannFromMetric[g]` | Kretschmann scalar |
-| `CovariantDFromMetric[t, g]` | Covariant derivative (prepends one down index) |
-| `GeodesicEquationsFromMetric[g]` | Geodesic equations as ODEs |
-
-### Cache
-
-| Function | Description |
-|---|---|
-| `CacheClear[]` | Clear cached inverse metrics and Christoffels |
+| `Christoffel[g]` | Christoffel symbols (cached) |
+| `Riemann[g]` | All-lower Riemann tensor |
+| `Ricci[g]` | Ricci tensor |
+| `RicciScalar[g]` | Ricci scalar |
+| `Kretschmann[g]` | Kretschmann scalar |
+| `Weyl[g]` | Weyl (conformal) tensor |
+| `Einstein[g]` | Einstein tensor |
+| `TracelessRicci[g]` | Traceless Ricci tensor |
+| `Killing[g]` | Killing equation PDE system |
+| `CovariantD[t, g]` | Covariant derivative (prepends one down index) |
+| `Geodesic[g]` | Geodesic equations as ODEs |
+| `Hamiltonian[g, p]` | Geodesic Hamiltonian g^{mu nu} p_mu p_nu |
 
 ## Benchmarks (Schwarzschild, D=4)
 
@@ -108,20 +113,22 @@ All operations sub-millisecond. Built-in array implementations vs OGRe on explic
 
 Caching (cold -> warm pipeline): 3.4x speedup.
 
-OGRe wins on convenience for exploratory work (automatic index tracking, caching across operations). CT wins on speed for explicit metrics and when you want auditable, documented code.
-
 ## Project structure
 
 ```
-mathematica-author/
+wolfram-author/
   init.wl                     # Load this to set up everything
   lib/
-    CT.wl                # Canonical tensor rep + algebra operations
-    GRT.wl                     # Curvature, covariant derivative, geodesics
-    index.json                # Registry of all functions with benchmarks
+    core.wl              # Core` -- equality, cache, conventions
+    tensor.wl            # Tensor` -- tensor rep + index algebra
+    gr.wl                # GR` -- curvature, covariant derivative, geodesics
+    init.wl              # Loads all modules
+    registry.json         # Registry of all functions with benchmarks
   scripts/
     wolfram.py                # Kernel harness (run WL, capture errors honestly)
     bench.py                  # Benchmark gate for library promotion
+    gate.py                   # Admission gate + trust DAG
+    registry.py               # Capability check
     verify_bridge.py          # Optional cross-engine check (Wolfram + SymPy)
   examples/
     ads-poincare-riemann.wl   # AdS4 curvature worked example
