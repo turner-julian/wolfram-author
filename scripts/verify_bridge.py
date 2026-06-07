@@ -7,6 +7,11 @@ equality (result == expected). Two independent CAS engines agreeing is much
 stronger evidence than one -- it catches a Wolfram-specific quirk, a convention
 slip, or a bug a single engine would miss.
 
+DEPRECATED (2026-06-07): verify-math was removed (archived to ~/archive/). With
+no `verify.py` on disk this bridge degrades to an "unavailable" verdict on every
+call (it never crashes). To re-enable, point MAUTHOR_VERIFY_MATH_PATH (or
+config.json `verify_math_path`) at an external copy of verify-math's verify.py.
+
 Honesty design. The fragile step is translating Wolfram InputForm to SymPy
 syntax, and a silent mistranslation here would poison the very check it provides.
 Two safeguards:

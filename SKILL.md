@@ -170,7 +170,7 @@ Times each candidate with `RepeatedTiming`, checks all are `EquivalentQ` to the
 reference, returns the winner and `promotable` (true only if ≥2 candidates, all
 clean, all equivalent). Disagreement or undecided equivalence blocks promotion.
 
-**Cross-engine scalar gate (opt-in only)** — `scripts/verify_bridge.py`:
+**Cross-engine scalar gate (opt-in only, currently inert)** — `scripts/verify_bridge.py`:
 
 ```
 python3 scripts/verify_bridge.py check --wl '<WL result>' --expect '<WL expected>'
@@ -179,7 +179,9 @@ python3 scripts/verify_bridge.py check --wl '<WL result>' --expect '<WL expected
 Confirms a scalar equality in **both** Wolfram (`EquivalentQ`) and SymPy. This is
 **not** part of the default workflow and is **never** an automatic step or a
 fallback — invoke it only when the user explicitly asks for a SymPy second
-opinion. Default verification is Wolfram-only (step 6).
+opinion. Default verification is Wolfram-only (step 6). **As of 2026-06-07
+verify-math is removed (archived), so this bridge returns "unavailable" unless
+`MAUTHOR_VERIFY_MATH_PATH` points at an external `verify.py`.**
 
 ## Evals
 

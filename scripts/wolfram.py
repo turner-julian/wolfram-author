@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Shared Wolfram Language kernel harness for wolfram-core.
 
-Vendored into verify-math and wolfram-author (ADR-0007 / ADR-0009). The CLI, the
-JSON shape below, and the `--load` bundle names already in use (`ct`, `gr`, ...)
-are a FROZEN contract: verify-math's `_wolfram_run` and its escalation ladder
-depend on them. Internals may be refactored; the interface may not change.
+Vendored from wolfram-core into wolfram-author. The CLI, the JSON shape below,
+and the `--load` bundle names are a FROZEN contract wolfram-core's consumers
+depend on. (verify-math, the original consumer, is deprecated/removed as of
+2026-06-07; spec-loom-cowork is now the primary consumer.) Internals may be
+refactored; the interface may not change.
 
 Runs a WL payload through `wolframscript` and prints one JSON object:
 
