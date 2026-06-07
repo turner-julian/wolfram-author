@@ -30,8 +30,9 @@ time -- via bench.py (EquivalentQ across candidates) or verify_bridge.py -- and
 recorded in the entry. `admit --run` will optionally re-run a candidate's bench
 spec through bench.py when a live kernel is present.
 
-Boundary (ADR-0004): wolfram-core returns raw facts; it never assigns a
-verify-math tier. The gate reports admit/pass/fail, not `proved`/`spot-checked`.
+Boundary: wolfram-core returns raw facts; it never assigns tiers. The gate
+reports admit/pass/fail, not `proved`/`spot-checked`. (The tier vocabulary
+belonged to verify-math, removed 2026-06-07.)
 
 Usage:
     gate.py audit [--json]              # audit the whole shipped registry

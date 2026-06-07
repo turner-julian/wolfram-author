@@ -25,7 +25,7 @@ Scope: scalar expressions. Tensors are checked componentwise by the caller if at
 all. This gate confirms scalar claims (curvature scalars, integrals, identities).
 
 Usage:
-  verify_bridge.py check --wl '<WL result>' --expect '<WL expected>' [--load mauthor]
+  verify_bridge.py check --wl '<WL result>' --expect '<WL expected>' [--load core]
   verify_bridge.py translate --wl '<WL expr>'
   verify_bridge.py selftest
 """
@@ -114,7 +114,7 @@ def _verify_math_numeric(lhs: str, rhs: str) -> dict:
 
 
 def check(wl_result: str, wl_expect: str, loads: list[str] | None = None) -> dict:
-    loads = loads or ["mauthor"]
+    loads = loads or ["core"]  # EquivalentQ lives in Core` (core.wl)
 
     # SymPy engine (verify-math), via translation.
     try:
@@ -160,7 +160,7 @@ _EXIT = {"agree": 0, "agree-not-equal": 0, "wolfram-only": 1,
 
 
 def _cmd_check(args: argparse.Namespace) -> int:
-    res = check(args.wl, args.expect, loads=args.load or ["mauthor"])
+    res = check(args.wl, args.expect, loads=args.load or ["core"])
     print(json.dumps(res, indent=2))
     return _EXIT.get(res["status"], 1)
 
@@ -199,7 +199,8 @@ def main() -> int:
     p_check = sub.add_parser("check", help="confirm a WL scalar equality with both engines")
     p_check.add_argument("--wl", required=True, help="the Wolfram result expression")
     p_check.add_argument("--expect", required=True, help="the expected expression (WL)")
-    p_check.add_argument("--load", action="append", default=[], choices=["mauthor", "gr", "ogre", "xact"])
+    p_check.add_argument("--load", action="append", default=[],
+                         choices=["core", "tensor", "gr", "qec", "ogre", "xact"])
     p_check.set_defaults(func=_cmd_check)
 
     p_tr = sub.add_parser("translate", help="show the SymPy translation of a WL scalar")

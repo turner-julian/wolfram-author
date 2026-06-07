@@ -29,7 +29,10 @@ Trc::usage = "Trc[t, {i, j}] contracts indices i and j (one up, one down).";
 Prod::usage = "Prod[t1, t2] tensor (outer) product.";
 Contract::usage = "Contract[t1, i, t2, j] contracts index i of t1 with index j of t2.";
 Transform::usage = "Transform[t, newCoords, rules] coordinate transformation.";
-contractMatIndex::usage = "contractMatIndex[mat, arr, k, rank] contracts a d*d matrix with the k-th index of a rank-r array.";
+(* Internal helper, intentionally in the public Tensor` context: GR` calls it
+   unqualified (BeginPackage["GR`", {..., "Tensor`"}]), so it is shared substrate,
+   not a capability. Allowlisted in scripts/test_registry_lib.py. *)
+contractMatIndex::usage = "contractMatIndex[mat, arr, k, rank] contracts a d*d matrix with the k-th index of a rank-r array (internal substrate).";
 
 Begin["`Private`"];
 

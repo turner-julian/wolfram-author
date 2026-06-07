@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Shared Wolfram Language kernel harness for wolfram-core.
 
-Vendored from wolfram-core into wolfram-author. The CLI, the JSON shape below,
-and the `--load` bundle names are a FROZEN contract wolfram-core's consumers
-depend on. (verify-math, the original consumer, is deprecated/removed as of
-2026-06-07; spec-loom-cowork is now the primary consumer.) Internals may be
-refactored; the interface may not change.
+The canonical harness; also vendored into wolfram-author. The CLI, the JSON
+shape below, and the `--load` bundle names are a FROZEN contract spec-loom-cowork
+depends on (via session.py's matching dict shape). (verify-math, the original
+consumer, was removed 2026-06-07.) Internals may be refactored; the interface
+may not change.
 
 Runs a WL payload through `wolframscript` and prints one JSON object:
 
@@ -113,6 +113,8 @@ _LOADS = {
     # whole-derivation object-flow walker (slVerifyDerivation); implies decide.
     "derivation": (f'Get["{LIB_DIR / "decide.wl"}"];\n'
                    f'Get["{LIB_DIR / "derivation.wl"}"];'),
+    # static notebook generation (ToBoxes-frozen cells, no dynamic content).
+    "display": f'Get["{LIB_DIR / "display.wl"}"];',
     # (legacy ct/grt/mauthor bundles removed; CT.wl/GRT.wl deleted, wolfram-author out)
     # xCoba component computation (extends xact with coordinate-basis tools)
     "xcoba": (

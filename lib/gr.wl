@@ -47,6 +47,17 @@ expressions equal to zero (coordinates promoted to functions of the parameter)."
 Hamiltonian::usage =
   "Hamiltonian[g, p] gives H = g^{mu nu} p_mu p_nu for a momentum covector p \
 (length-D list of lower components p_mu).";
+CircularOrbitL2::usage =
+  "CircularOrbitL2[veff, r, ell] solves the circular-orbit condition V'(r)=0 of \
+an equatorial effective potential veff (squared angular momentum carried by the \
+symbol ell) for ell, returning the clean rational ell(r). STAGING: equatorial \
+orbits, potential rational in ell; fails loudly (message + $Failed) otherwise.";
+EquatorialISCO::usage =
+  "EquatorialISCO[veff, r, ell, rmin] gives the innermost stable circular orbit \
+radius: it eliminates ell via the circular condition V'=0, solves V''=0, and \
+returns the unique physical root r > rmin. STAGING: equatorial timelike orbits, \
+potential rational in ell=L^2 (Schwarzschild gives 6M); returns $Failed (with a \
+message) outside that domain rather than a wrong value.";
 
 Begin["`Private`"];
 
@@ -206,6 +217,35 @@ Hamiltonian[g_?FieldQ, p_List] := Module[{ginv, d = Dim[g]},
     Message[Hamiltonian::baddim, Length[p], d]; Return[$Failed]];
   ginv = cachedInverse[Components[g]];
   Core`$Simplify[p . ginv . p]];
+
+(* --------------------- Circular orbits / ISCO (staging) ------------------ *)
+(* The clean-Solve recipe: solving V'=0 for L^2 (the symbol ell) keeps the
+   equation rational, so the circular momentum and the ISCO root come out clean
+   instead of as Root[...] objects. Scoped to equatorial potentials rational in
+   ell; outside that domain (e.g. Kerr, where spin enters nonlinearly) the Solve
+   yields no unique solution and these FAIL LOUDLY rather than return a wrong
+   value. See registry.json (stability: staging) and docs/gate.md. *)
+
+CircularOrbitL2::nosol =
+  "could not solve V'(r)=0 for `1` as a unique expression (potential not rational \
+in `1`, or no circular orbit). Returning $Failed.";
+CircularOrbitL2[veff_, r_, ell_] := Module[{sols},
+  sols = Solve[D[veff, r] == 0, ell];
+  If[Length[sols] =!= 1,
+    Message[CircularOrbitL2::nosol, ell]; Return[$Failed]];
+  Core`$Simplify[ell /. First[sols]]];
+
+EquatorialISCO::noroot =
+  "the ISCO conditions gave no unique physical root r > `1` (got `2`). Returning \
+$Failed -- this potential is outside EquatorialISCO's tested domain.";
+EquatorialISCO[veff_, r_, ell_, rmin_] := Module[{ellc, roots, phys},
+  ellc = CircularOrbitL2[veff, r, ell];
+  If[ellc === $Failed, Return[$Failed]];
+  roots = r /. Solve[(D[veff, {r, 2}] /. ell -> ellc) == 0, r];
+  phys = DeleteDuplicates[Select[roots, (Simplify[# > rmin] === True) &]];
+  If[Length[phys] =!= 1,
+    Message[EquatorialISCO::noroot, rmin, phys]; Return[$Failed]];
+  Core`$Simplify[First[phys]]];
 
 End[];
 EndPackage[];

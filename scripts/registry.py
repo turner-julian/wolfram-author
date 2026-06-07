@@ -13,10 +13,10 @@ the consumers ask at call time --
 registry is unchecked:no-capability at call time, never a crash"). That graceful
 miss is what makes the demand-driven library safe to grow.
 
-Boundary (ADR-0004 / docs/PLAN.md): wolfram-core returns RAW capability facts and
-verdicts; it does NOT assign verify-math tiers. The raw status here is
-`no-capability`; verify-math is what maps that to the `unchecked:no-capability`
-tier. We never emit a tier string.
+Boundary (docs/PLAN.md): wolfram-core returns RAW capability facts and verdicts;
+it never assigns tiers. The raw status here is `ok`/`no-capability`. (verify-math
+once mapped `no-capability` to an `unchecked:no-capability` tier; it was removed
+2026-06-07 and no consumer assigns tiers now.)
 
 The *admission* policy (needed / verified / documented + trust DAG) lives in
 gate.py, which builds on the shape validation here.
@@ -49,6 +49,17 @@ VALID_STATUS = ("verified", "provisional", "deprecated")
 VALID_METHODS = (
     "closed-form", "independent-method", "second-library", "benchmark-equivalence",
 )
+# API-maturity, ORTHOGONAL to the correctness `status`. `staging` = a primitive
+# created fast on the method-dependence trigger (docs/gate.md), correctness-checked
+# but not yet promoted to the stable API (its general shape unconfirmed by a 2nd
+# instance). Optional; absent means `stable`.
+VALID_STABILITY = ("staging", "stable")
+
+
+def stability(entry: dict) -> str:
+    """The entry's API maturity, defaulting to 'stable' (anything shipped before
+    the field existed is stable)."""
+    return entry.get("stability") or "stable"
 # Which statuses mean "the capability is present and callable". A deprecated or
 # absent primitive is `no-capability`; a provisional one is available but flagged.
 AVAILABLE_STATUS = ("verified", "provisional")
@@ -98,8 +109,8 @@ def check(name: str, registry: dict | None = None) -> dict:
          "detail": <str>}
 
     `ok` -> the primitive is registered and callable (verified or provisional).
-    `no-capability` -> absent, or registered-but-deprecated. verify-math maps this
-    to the `unchecked:no-capability` tier; wolfram-core does not assign tiers."""
+    `no-capability` -> absent, or registered-but-deprecated. wolfram-core reports
+    the raw fact and does not assign tiers."""
     entry = lookup(name, registry)
     if entry is None:
         return {
@@ -110,8 +121,7 @@ def check(name: str, registry: dict | None = None) -> dict:
             "entry": None,
             "detail": (
                 f"no registered capability '{name}'. Raw status no-capability "
-                "(verify-math renders this as the unchecked:no-capability tier; "
-                "author + gate + register the primitive to close the miss)."
+                "(author + gate + register the primitive to close the miss)."
             ),
         }
     rstatus = entry.get("status")
@@ -167,6 +177,10 @@ def validate(registry: dict | None = None) -> dict:
         if cap.get("status") not in VALID_STATUS:
             errors.append(f"{name}: status '{cap.get('status')}' not in {VALID_STATUS}")
 
+        stab = cap.get("stability")
+        if stab is not None and stab not in VALID_STABILITY:
+            errors.append(f"{name}: stability '{stab}' not in {VALID_STABILITY}")
+
         conv = cap.get("conventions")
         if conv is not None and not isinstance(conv, dict):
             errors.append(f"{name}: 'conventions' must be an object")
@@ -211,7 +225,8 @@ def _cmd_list(args: argparse.Namespace) -> int:
     else:
         for c in rows:
             hs = " [high-stakes]" if c.get("high_stakes") else ""
-            print(f"  {c.get('status','?'):11s} {c['name']}{hs}")
+            st = " [staging]" if stability(c) == "staging" else ""
+            print(f"  {c.get('status','?'):11s} {c['name']}{st}{hs}")
         print(f"\n{len(rows)} capabilit{'y' if len(rows)==1 else 'ies'}"
               + (f" with status={args.status}" if args.status else ""))
     return 0
@@ -274,6 +289,17 @@ def _cmd_selftest(args: argparse.Namespace) -> int:
     bad = {"capabilities": [{"name": "Bad", "status": "bogus"}]}
     bv = validate(bad)
     report("validate() catches a malformed entry", not bv["ok"] and len(bv["errors"]) > 0)
+
+    # 7. stability is validated when present, and defaults to stable when absent
+    bad_stab = {"capabilities": [dict(name="S", file="lib/core.wl", signature="S[]",
+                representation="r", conventions={"a": "b"},
+                verification={"method": "closed-form", "evidence": "e", "reference": "r"},
+                first_demanded_by="seed", status="verified", stability="bogus")]}
+    sv = validate(bad_stab)
+    report("validate() catches a bad stability value",
+           not sv["ok"] and any("stability" in e for e in sv["errors"]))
+    report("stability() defaults absent -> stable",
+           stability({"name": "x"}) == "stable" and stability({"stability": "staging"}) == "staging")
 
     return 0 if ok else 1
 

@@ -39,6 +39,16 @@ numericZeroQ::usage = "numericZeroQ[d] -> True/False/$Failed: is d identically z
 arrayEquivalentQ::usage = "arrayEquivalentQ[a, b] elementwise EquivalentQ for arrays (for discipline modules).";
 scalarEquivalentQ::usage = "scalarEquivalentQ[a, b] scalar EquivalentQ (for discipline modules).";
 
+SimilarQ::usage =
+  "SimilarQ[a, b] -> True (similar matrices) | False (not similar). Uses \
+FrobeniusDecomposition (rational canonical form): two matrices are similar iff \
+they have the same Frobenius form. Exact, no field extension needed (14.3).";
+
+MinPoly::usage =
+  "MinPoly[m, x] returns the minimal polynomial of matrix m in the variable x, \
+cached. Wrapper around MatrixMinimalPolynomial (14.3). Distinguishes nilpotent \
+(x^k), diagonalizable (distinct linear factors), defective (repeated factors).";
+
 $Cache::usage = "Shared computation cache. CacheClear[] resets.";
 CacheClear::usage = "CacheClear[] clears the cache.";
 CacheStore::usage = "CacheStore[key, val] stores in the cache.";
@@ -107,6 +117,18 @@ CacheGet[key_] := $Cache[key];
 cachedInverse[m_] := Module[{key = {"inv", Hash[m]}, c},
   c = $Cache[key];
   If[MissingQ[c], $Cache[key] = Inverse[m], c]];
+
+(* ---- matrix classification (14.3) ---- *)
+
+SimilarQ::baddim = "Matrices have different dimensions (`1` vs `2`).";
+SimilarQ[a_?MatrixQ, b_?MatrixQ] := Module[{da, db},
+  da = Dimensions[a]; db = Dimensions[b];
+  If[da =!= db, Message[SimilarQ::baddim, da, db]; Return[False]];
+  FrobeniusDecomposition[a] === FrobeniusDecomposition[b]];
+
+MinPoly[m_?MatrixQ, x_] := Module[{key = {"minpoly", Hash[m]}, c},
+  c = $Cache[key];
+  If[MissingQ[c], $Cache[key] = MatrixMinimalPolynomial[m, x], c]];
 
 End[];
 EndPackage[];

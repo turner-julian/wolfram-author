@@ -58,7 +58,8 @@ slVerifyDerivation[claims_List, gamma_: True] := Module[
     With[{c = claims[[i]]},
       Switch[c["kind"],
         "define",
-          AppendTo[defSyms, c["wl"] /. Hold[(Set | SetDelayed)[s_, _]] :> Hold[s]];
+          AppendTo[defSyms,
+            c["wl"] /. (Hold | HoldComplete)[(Set | SetDelayed)[s_, _]] :> Hold[s]];
           Quiet[ReleaseHold[c["wl"]]];
           rec[c["id"], "define", "given", "given", Null, "", ""],
         "assert",

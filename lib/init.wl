@@ -23,3 +23,4 @@ Get[FileNameJoin[{$CTLibDir, "tensor.wl"}]];
 Get[FileNameJoin[{$CTLibDir, "gr.wl"}]];
 Get[FileNameJoin[{$CTLibDir, "decide.wl"}]];
 Get[FileNameJoin[{$CTLibDir, "derivation.wl"}]];
+Get[FileNameJoin[{$CTLibDir, "display.wl"}]];

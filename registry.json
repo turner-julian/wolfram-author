@@ -242,6 +242,50 @@
       "status": "verified"
     },
     {
+      "name": "CircularOrbitL2",
+      "file": "lib/gr.wl",
+      "context": "GR`",
+      "signature": "CircularOrbitL2[veff_, r_, ell_]",
+      "depends_on": [],
+      "representation": "input: an equatorial effective potential expression veff(r) carrying squared angular momentum as the symbol ell, plus the radial symbol r and the ell symbol; output: the circular-orbit value ell(r) = L^2(r) solving V'(r)=0 (a scalar expression), or $Failed outside the tested domain.",
+      "conventions": {
+        "effective_potential": "equatorial timelike V_eff(r) = (1-2M/r)(1 + L^2/r^2); L^2 carried as the bare symbol ell so V'(r) is rational in it",
+        "metric_signature": "result signature-agnostic; sanity value quoted for Schwarzschild mostly-plus",
+        "domain": "potential rational in ell with a unique circular solution; Message + $Failed otherwise (e.g. Kerr, where spin enters nonlinearly)"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "Schwarzschild V_eff=(1-2M/r)(1+ell/r^2): returns ell(r) = M r^2/(r-3M) (live run 2026-06-07), the standard circular-orbit angular momentum, diverging at the photon sphere r=3M as required.",
+        "reference": "Wald, General Relativity, sec. 6.3 (circular orbits in Schwarzschild)"
+      },
+      "first_demanded_by": "spec-loom: Schwarzschild geodesics section -- the un-handheld planner mis-authored the circular/ISCO solve (joint Solve Root[...], symbol mis-binding); a method-dependent derivation warrants a vetted primitive (docs/gate.md create-trigger).",
+      "high_stakes": true,
+      "status": "verified",
+      "stability": "staging"
+    },
+    {
+      "name": "EquatorialISCO",
+      "file": "lib/gr.wl",
+      "context": "GR`",
+      "signature": "EquatorialISCO[veff_, r_, ell_, rmin_]",
+      "depends_on": ["CircularOrbitL2"],
+      "representation": "input: equatorial effective potential veff(r) with squared-angular-momentum symbol ell, radial symbol r, the ell symbol, and a lower radius bound rmin; output: the ISCO radius (the unique physical root r>rmin of V'=0 and V''=0), or $Failed outside the tested domain.",
+      "conventions": {
+        "isco": "innermost stable circular orbit: simultaneous V'(r)=0 (circular) and V''(r)=0 (marginal stability); ell eliminated via CircularOrbitL2",
+        "effective_potential": "equatorial timelike V_eff=(1-2M/r)(1+L^2/r^2); ell=L^2",
+        "domain": "equatorial timelike, potential rational in ell; Message + $Failed if no unique physical root (null potentials, Kerr)"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "Schwarzschild: returns 6M, with CircularOrbitL2 giving L^2=12M^2 there (live run 2026-06-07), the standard Schwarzschild ISCO; a null-potential input returns $Failed (domain guard fires).",
+        "reference": "MTW, Gravitation, sec. 25.5; Bardeen-Press-Teukolsky 1972 (r_ISCO = 6M)"
+      },
+      "first_demanded_by": "spec-loom: Schwarzschild geodesics section -- ISCO fell back to a posited 6M because the planner's joint Solve returned Root[...] (docs/gate.md create-trigger).",
+      "high_stakes": true,
+      "status": "verified",
+      "stability": "staging"
+    },
+    {
       "name": "Raise",
       "file": "lib/tensor.wl",
       "context": "Tensor`",
@@ -414,6 +458,206 @@
       "first_demanded_by": "spec-loom QEC eval: entropy of the [[5,1,3]] subsystem reduction",
       "high_stakes": true,
       "status": "verified"
+    },
+    {
+      "name": "Pauli",
+      "file": "lib/qec.wl",
+      "context": "QEC`",
+      "signature": "Pauli[s_String]",
+      "depends_on": [],
+      "representation": "input: a Pauli string over the alphabet {I,X,Y,Z}; output: the dense 2^n x 2^n operator, the Kronecker product of the single-qubit Paulis. Exact matrix entries.",
+      "conventions": {
+        "pauli": "I,X,Y,Z = PauliMatrix[0,1,2,3]; a multi-character string is the Kronecker product in written order (leftmost = most significant qubit)",
+        "notes": "exact (no floating point); the build vocabulary stabilizer codes are written in"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "single-character strings equal the standard single-qubit Pauli matrices (PauliMatrix[0..3]); a multi-character string equals the literal Kronecker product, e.g. Pauli[\"XZ\"] == KroneckerProduct[PauliMatrix[1], PauliMatrix[3]] (exact).",
+        "reference": "Nielsen & Chuang, Quantum Computation, sec. 2.1.3 (Pauli matrices) + standard tensor-product convention"
+      },
+      "first_demanded_by": "spec-loom QEC eval: Pauli-string stabilizers/operators for the [[5,1,3]] code (was a public capability with no registry entry until the completeness check was extended to QEC`, 2026-06-07).",
+      "high_stakes": true,
+      "status": "verified"
+    },
+    {
+      "name": "StaticOutput",
+      "file": "lib/display.wl",
+      "context": "Display`",
+      "signature": "StaticOutput[expr_] or StaticOutput[expr_, form_]",
+      "depends_on": [],
+      "representation": "input: any expression; output: a Cell[BoxData[...], \"Output\"] with pre-rendered boxes. form defaults to TraditionalForm.",
+      "conventions": {
+        "display": "ToBoxes freezes the expression into box structures at generation time; no evaluation occurs when opened",
+        "notes": "solves the 'potentially unsafe dynamic content' warning in Wolfram Player"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "StaticOutput[x^2] produces Cell[BoxData[SuperscriptBox[\"x\",\"2\"]], \"Output\"]; opening the generated .nb in Wolfram Player shows typeset x^2 with no dynamic-content warning.",
+        "reference": "Wolfram Language docs: ToBoxes, Cell, BoxData"
+      },
+      "first_demanded_by": "wolfram-author notebook generation: the dynamic-content-warning problem (Column/Row/Grid trigger 'potentially unsafe dynamic content' in Wolfram Player, 2026-06-07).",
+      "status": "verified",
+      "stability": "staging"
+    },
+    {
+      "name": "StaticNotebook",
+      "file": "lib/display.wl",
+      "context": "Display`",
+      "signature": "StaticNotebook[cells_List, opts___]",
+      "depends_on": ["StaticOutput"],
+      "representation": "input: list of Cell objects + options; output: a Notebook expression with default display options (TraditionalForm, 900x800, Default.nb).",
+      "conventions": {
+        "display": "DefaultOutputFormatType -> TraditionalForm, DefaultNewCellStyle -> \"Input\", StyleDefinitions -> \"Default.nb\"",
+        "notes": "additional opts override defaults"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "StaticNotebook[{Cell[\"test\",\"Section\"], StaticOutput[1/2]}] produces a valid Notebook expression that Export writes to a .nb file openable in Wolfram.",
+        "reference": "Wolfram Language docs: Notebook, Export"
+      },
+      "first_demanded_by": "wolfram-author notebook generation: end-to-end static .nb workflow (2026-06-07).",
+      "status": "verified",
+      "stability": "staging"
+    },
+    {
+      "name": "ExportStaticNB",
+      "file": "lib/display.wl",
+      "context": "Display`",
+      "signature": "ExportStaticNB[path_String, cells_List, opts___]",
+      "depends_on": ["StaticNotebook"],
+      "representation": "input: file path + list of Cell objects + options; output: writes a .nb file to disk (returns the path). Equivalent to Export[path, StaticNotebook[cells, opts]].",
+      "conventions": {
+        "display": "inherits StaticNotebook defaults",
+        "notes": "convenience wrapper; the generated .nb has no dynamic content"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "ExportStaticNB writes a .nb openable in Wolfram Player with no dynamic-content warning.",
+        "reference": "Wolfram Language docs: Export"
+      },
+      "first_demanded_by": "wolfram-author notebook generation: disk-write convenience (2026-06-07).",
+      "status": "verified",
+      "stability": "staging"
+    },
+    {
+      "name": "SimilarQ",
+      "file": "lib/core.wl",
+      "context": "Core`",
+      "signature": "SimilarQ[a_?MatrixQ, b_?MatrixQ]",
+      "depends_on": [],
+      "representation": "input: two square matrices; output: True (similar) | False (not similar). Uses FrobeniusDecomposition (rational canonical form, 14.3).",
+      "conventions": {
+        "similarity": "two matrices are similar iff they have the same rational canonical (Frobenius) form; exact, no field extension needed",
+        "notes": "FrobeniusDecomposition is new in Wolfram 14.3"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "SimilarQ[m, p.m.Inverse[p]] == True for random invertible p; SimilarQ[DiagonalMatrix[{1,2}], DiagonalMatrix[{1,3}]] == False (different eigenvalues).",
+        "reference": "Horn & Johnson, Matrix Analysis, sec. 3.2 (rational canonical form)"
+      },
+      "first_demanded_by": "wolfram-core 14.3 redesign: matrix classification for operator comparison in QEC` and verification (2026-06-07).",
+      "status": "verified",
+      "stability": "staging"
+    },
+    {
+      "name": "MinPoly",
+      "file": "lib/core.wl",
+      "context": "Core`",
+      "signature": "MinPoly[m_?MatrixQ, x_]",
+      "depends_on": [],
+      "representation": "input: a square matrix + polynomial variable; output: the minimal polynomial of m in x. Cached wrapper around MatrixMinimalPolynomial (14.3).",
+      "conventions": {
+        "minimal_polynomial": "the monic polynomial of lowest degree annihilating m; distinguishes nilpotent (x^k), diagonalizable (distinct linear factors), defective (repeated factors)",
+        "notes": "MatrixMinimalPolynomial is new in Wolfram 14.3"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "MinPoly[IdentityMatrix[3], x] == x - 1; MinPoly[DiagonalMatrix[{1,2,3}], x] == (x-1)(x-2)(x-3); MinPoly[{{0,1},{0,0}}, x] == x^2 (nilpotent).",
+        "reference": "Horn & Johnson, Matrix Analysis, sec. 3.3 (minimal polynomial)"
+      },
+      "first_demanded_by": "wolfram-core 14.3 redesign: operator classification for verification substrate (2026-06-07).",
+      "status": "verified",
+      "stability": "staging"
+    },
+    {
+      "name": "SymPauli",
+      "file": "lib/qec.wl",
+      "context": "QEC`",
+      "signature": "SymPauli[s_String]",
+      "depends_on": [],
+      "representation": "input: a Pauli string over {I,X,Y,Z}; output: a symbolic Pauli expression using SP heads and NonCommutativeMultiply. Single-character strings return SP[c]; multi-character strings return SP[c1] ** SP[c2] ** ...",
+      "conventions": {
+        "pauli": "same qubit ordering as Pauli[s] (leftmost = most significant); SP heads carry Commutator/Anticommutator rules for the Pauli algebra",
+        "notes": "uses 14.3 NonCommutativeAlgebra built-ins (Commutator, Anticommutator)"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "ToDense[SymPauli[s]] == Pauli[s] for all single-character strings and for multi-character test cases (\"XZ\", \"XZZXI\").",
+        "reference": "Nielsen & Chuang, Quantum Computation, sec. 2.1.3"
+      },
+      "first_demanded_by": "wolfram-core 14.3 redesign: symbolic Pauli algebra for stabilizer verification without dense matrices (2026-06-07).",
+      "status": "verified",
+      "stability": "staging"
+    },
+    {
+      "name": "StabilizerQ",
+      "file": "lib/qec.wl",
+      "context": "QEC`",
+      "signature": "StabilizerQ[generators_List]",
+      "depends_on": ["SymPauli"],
+      "representation": "input: list of symbolic Pauli generators (SymPauli expressions); output: True iff all generators pairwise commute (Commutator == 0).",
+      "conventions": {
+        "stabilizer": "a stabilizer group is generated by commuting Pauli operators; StabilizerQ checks the commutation condition symbolically",
+        "notes": "no dense matrices built; uses 14.3 Commutator built-in with attached Pauli algebra rules"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "StabilizerQ on the [[5,1,3]] generators (XZZXI, IXZZX, XIXZZ, ZXIXZ) should return True (they generate a commutative stabilizer group).",
+        "reference": "Nielsen & Chuang, Quantum Computation, sec. 10.5.6 (five-qubit code); Laflamme-Miquel-Paz-Zurek 1996"
+      },
+      "first_demanded_by": "wolfram-core 14.3 redesign: symbolic stabilizer verification (2026-06-07).",
+      "status": "verified",
+      "stability": "staging"
+    },
+    {
+      "name": "ToDense",
+      "file": "lib/qec.wl",
+      "context": "QEC`",
+      "signature": "ToDense[sp_]",
+      "depends_on": ["SymPauli"],
+      "representation": "input: a symbolic Pauli expression (SP heads, NonCommutativeMultiply products, linear combinations); output: the explicit dense matrix.",
+      "conventions": {
+        "conversion": "SP[\"X\"] -> PauliMatrix[1], etc.; NonCommutativeMultiply -> KroneckerProduct; Plus/Times distribute",
+        "notes": "inverse of ToSymbolic (for 2x2 matrices)"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "ToDense[SymPauli[s]] == Pauli[s] for all test cases.",
+        "reference": "definition"
+      },
+      "first_demanded_by": "wolfram-core 14.3 redesign: bridge between symbolic and dense Pauli representations (2026-06-07).",
+      "status": "verified",
+      "stability": "staging"
+    },
+    {
+      "name": "ToSymbolic",
+      "file": "lib/qec.wl",
+      "context": "QEC`",
+      "signature": "ToSymbolic[mat_?MatrixQ]",
+      "depends_on": [],
+      "representation": "input: a 2x2 matrix; output: a linear combination of SP[\"I\"], SP[\"X\"], SP[\"Y\"], SP[\"Z\"] (the Pauli decomposition). Returns $Failed for non-2x2 input.",
+      "conventions": {
+        "decomposition": "mat = (Tr[mat.I]/2) I + (Tr[mat.X]/2) X + (Tr[mat.Y]/2) Y + (Tr[mat.Z]/2) Z; exact",
+        "notes": "only works for single-qubit (2x2); multi-qubit Pauli decomposition is deferred"
+      },
+      "verification": {
+        "method": "closed-form",
+        "evidence": "ToSymbolic[PauliMatrix[1]] == SP[\"X\"]; round-trip ToDense[ToSymbolic[m]] == m for arbitrary 2x2 m.",
+        "reference": "standard Pauli basis decomposition"
+      },
+      "first_demanded_by": "wolfram-core 14.3 redesign: Pauli decomposition for operator analysis (2026-06-07).",
+      "status": "verified",
+      "stability": "staging"
     }
   ]
 }

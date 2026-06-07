@@ -98,11 +98,14 @@ slDecide[lhs_ <  rhs_,  gamma_: True] := decideIneq[Less, lhs, rhs, gamma];
 slDecide[lhs_ <= rhs_,  gamma_: True] := decideIneq[LessEqual, lhs, rhs, gamma];
 slDecide[lhs_ >  rhs_,  gamma_: True] := decideIneq[Greater, lhs, rhs, gamma];
 slDecide[lhs_ >= rhs_,  gamma_: True] := decideIneq[GreaterEqual, lhs, rhs, gamma];
-(* A held assertion (slVerifyDerivation carries each claim as Hold[lhs == rhs] so
-   it survives list construction with its objects unbound) unwraps to the bare
-   relation, which HoldFirst then keeps held for the right equality/ineq dispatch. *)
-slDecide[Hold[a_],      gamma_: True] := slDecide[a, gamma];
-slDecide[p_,            gamma_: True] := decidePredicate[p, gamma];
+(* A held assertion (slVerifyDerivation carries each claim as Hold[lhs == rhs] or
+   HoldComplete[lhs == rhs] so it survives list construction with its objects
+   unbound) unwraps to the bare relation, which HoldFirst then keeps held for
+   the right equality/ineq dispatch.  HoldComplete (14.2) is strictly stronger
+   than Hold: it also blocks Condition matching and Sequence flattening. *)
+slDecide[Hold[a_],         gamma_: True] := slDecide[a, gamma];
+slDecide[HoldComplete[a_], gamma_: True] := slDecide[a, gamma];
+slDecide[p_,               gamma_: True] := decidePredicate[p, gamma];
 
 End[];
 EndPackage[];
